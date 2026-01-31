@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rebirth System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .back-btn {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-bottom: 30px;
+        }
+        .back-btn:hover {
+            background: #252525;
+            border-color: #555;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        /* REBIRTH STYLES */
+        .rebirth-overview {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 2px solid #d69e2e;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .rebirth-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px; 
+        }
+        .rebirth-stat {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+        .rebirth-stat-label {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .rebirth-stat-value {
+            color: #d69e2e;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .requirements-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .requirement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+        }
+        .requirement-item:last-child {
+            border-bottom: none;
+        }
+        .requirement-label {
+            font-size: 16px;
+            color: #ccc;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            margin: 0 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d69e2e, #ffd700);
+            transition: width 0.3s;
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .requirement-status {
+            font-weight: bold;
+            min-width: 80px;
+            text-align: right;
+        }
+        .requirement-status.met {
+            color: #38a169;
+        }
+        .requirement-status.not-met {
+            color: #ff4444;
+        }
+        .impact-sections {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .impact-box {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .impact-box.lose {
+            border-color: #ff4444;
+        }
+        .impact-box.keep {
+            border-color: #38a169;
+        }
+        .impact-box.gain {
+            border-color: #d69e2e;
+        }
+        .impact-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .impact-list {
+            font-size: 14px;
+            color: #ccc;
+            line-height: 1.8;
+        }
+        .rebirth-btn {
+            padding: 20px 60px;
+            background: #38a169;
+            border: 2px solid #2f855a;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: block;
+            margin: 0 auto;
+        }
+        .rebirth-btn:hover:not(:disabled) {
+            background: #2f855a;
+            transform: scale(1.05);
+        }
+        .rebirth-btn:disabled {
+            background: #666;
+            border-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        /* REBIRTH ANIMATION */
+        .rebirth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(214, 158, 46, 0.1) 0%, rgba(0, 0, 0, 0.95) 100%);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .rebirth-overlay.active {
+            display: flex;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .rebirth-content {
+            text-align: center;
+            transform: scale(0);
+            animation: explosionZoom 1.5s ease-out forwards;
+        }
+        @keyframes explosionZoom {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+            70% { transform: scale(0.9) rotate(360deg); }
+            100% { transform: scale(1) rotate(360deg); opacity: 1; }
+        }
+        .rebirth-circle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffd700 0%, #d69e2e 50%, transparent 70%);
+            position: absolute;
+            animation: pulse 2s ease-in-out infinite;
+            box-shadow: 0 0 100px #d69e2e, 0 0 200px #ffd700;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        .rebirth-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: particleFloat 2s ease-out forwards;
+            box-shadow: 0 0 10px #ffd700;
+        }
+        @keyframes particleFloat {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        .rebirth-text {
+            position: relative;
+            z-index: 10;
+            font-size: 64px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #d69e2e, #ffd700);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .rebirth-tier {
+            position: relative;
+            z-index: 10;
+            font-size: 48px;
+            color: #fff;
+            margin-top: 20px;
+            text-shadow: 0 0 20px #d69e2e;
+        }
+        .rebirth-gems {
+            position: relative;
+            z-index: 10;
+            font-size: 36px;
+            color: #d69e2e;
+            margin-top: 10px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='index.html'">← BACK</button>
+        <h1>💎 REBIRTH SYSTEM</h1>
+        
+        <div class="rebirth-overview">
+            <h2 style="font-size: 28px; margin-bottom: 20px;">💎 PRESTIGE & REBIRTH</h2>
+            <div class="rebirth-stats">
+                <div class="rebirth-stat">
+                    <div class="rebirth-stat-label">Current Tier</div>
+                    <div class="rebirth-stat-value" id="currentTier">0</div>
+                </div>
+                <div class="rebirth-stat">
+                    <div class="rebirth-stat-label">Total Rebirths</div>
+                    <div class="rebirth-stat-value" id="totalRebirths">0</div>
+                </div>
+                <div class="rebirth-stat">
+                    <div class="rebirth-stat-label">Lifetime Gems</div>
+                    <div class="rebirth-stat-value" id="lifetimeGems">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="requirements-section">
+            <h3 style="margin-bottom: 20px; text-align: center;">Next Rebirth Requirements</h3>
+            <div id="requirementsList"></div>
+        </div>
+        
+        <div class="impact-sections">
+            <div class="impact-box lose">
+                <div class="impact-title" style="color: #ff4444;">❌ YOU WILL LOSE</div>
+                <div class="impact-list" id="loseList"></div>
+            </div>
+            <div class="impact-box keep">
+                <div class="impact-title" style="color: #38a169;">✅ YOU WILL KEEP</div>
+                <div class="impact-list" id="keepList"></div>
+            </div>
+            <div class="impact-box gain">
+                <div class="impact-title" style="color: #d69e2e;">💎 YOU WILL GAIN</div>
+                <div class="impact-list" id="gainList"></div>
+            </div>
+        </div>
+        
+        <button class="rebirth-btn" id="rebirthBtn">REBIRTH NOW</button>
+    </div>
+
+    <!-- REBIRTH ANIMATION OVERLAY -->
+    <div class="rebirth-overlay" id="rebirthOverlay">
+        <div class="rebirth-particles" id="particles"></div>
+        <div class="rebirth-circle"></div>
+        <div class="rebirth-content">
+            <div class="rebirth-text">REBIRTH</div>
+            <div class="rebirth-tier" id="animTier">TIER 1</div>
+            <div class="rebirth-gems" id="animGems">+5 💎</div>
+        </div>
+    </div>
+
+    <script>
+        const _0x4a2b = (s) => btoa(s).split('').reverse().join('');
+        const _0x2b4a = (s) => atob(s.split('').reverse().join(''));
+        const _0x9c3d = 'X2NvaW5EYXRh';
+
+        function getUserProfile() {
+            try {
+                const stored = localStorage.getItem('userProfile');
+                if (stored) {
+                    const profile = JSON.parse(stored);
+                    // Initialize rebirth data
+                    if (!profile.rebirthData) {
+                        profile.rebirthData = {
+                            tier: 0,
+                            totalRebirths: 0,
+                            totalGemsEarned: 0
+                        };
+                    }
+                    if (typeof profile.gems === 'undefined') profile.gems = 0;
+                    
+                    return profile;
+                }
+            } catch(e) {}
+            return {
+                username: 'guest',
+                status: 'player',
+                unlockedGames: [],
+                equippedCosmetics: { color: 'default', hat: 'none', face: 'none', effect: 'none', sword: 'none' },
+                ownedCosmetics: { colors: ['default'], hats: ['none'], faces: ['none'], effects: ['none'], swords: ['none'] },
+                rebirthData: { tier: 0, totalRebirths: 0, totalGemsEarned: 0 },
+                gems: 0
+            };
+        }
+
+        function saveUserProfile(profile) {
+            try {
+                localStorage.setItem('userProfile', JSON.stringify(profile));
+            } catch(e) {}
+        }
+
+        function getCoins() {
+            try {
+                const stored = localStorage.getItem(_0x2b4a(_0x9c3d));
+                if (stored) return parseInt(_0x2b4a(stored));
+            } catch(e) {}
+            return 10;
+        }
+
+        function setCoins(amount) {
+            try {
+                localStorage.setItem(_0x2b4a(_0x9c3d), _0x4a2b(amount.toString()));
+            } catch(e) {}
+        }
+
+        let userProfile = getUserProfile();
+        let coins = getCoins();
+
+        // Calculate rebirth requirements
+        // Calculate rebirth requirements
+function getRebirthRequirements(tier) {
+    const requirements = {
+        1: { coins: 50000, cosmetics: 5, games: 3, swords: 0, gems: 2 },
+        2: { coins: 150000, cosmetics: 10, games: 6, swords: 1, gems: 5 },
+        3: { coins: 400000, cosmetics: 15, games: 9, swords: 2, gems: 10 },
+        4: { coins: 1000000, cosmetics: 20, games: 12, swords: 3, gems: 15 },
+        5: { coins: 2500000, cosmetics: 21, games: 15, swords: 3, gems: 25 }
+    };
+    
+    if (tier <= 5) return requirements[tier];
+    
+    // Tier 6+ formulas - exponential scaling for coins
+    const excess = tier - 5;
+    return {
+        coins: Math.floor(2500000 * Math.pow(2.5, excess)), // Much faster exponential growth
+        cosmetics: 21, // Maxed out
+        games: 15, // Maxed out
+        swords: 3, // Maxed out
+        gems: Math.floor(25 * Math.pow(1.5, excess))
+    };
+}
+
+        // Get total cosmetics (minus 5 for defaults)
+        function getTotalCosmetics() {
+            const total = Object.values(userProfile.ownedCosmetics || {}).reduce((sum, arr) => sum + arr.length, 0);
+            return Math.max(0, total - 5);
+        }
+
+        // Check if requirements met
+        function checkRebirthRequirements() {
+            const nextTier = userProfile.rebirthData.tier + 1;
+            const req = getRebirthRequirements(nextTier);
+            
+            const totalCosmetics = getTotalCosmetics();
+            const totalSwords = (userProfile.ownedCosmetics?.swords || []).filter(s => s !== 'none').length;
+            
+            return {
+                coins: coins >= req.coins,
+                cosmetics: totalCosmetics >= req.cosmetics,
+                games: userProfile.unlockedGames.length >= req.games,
+                swords: totalSwords >= req.swords,
+                allMet: coins >= req.coins && totalCosmetics >= req.cosmetics && 
+                        userProfile.unlockedGames.length >= req.games && totalSwords >= req.swords
+            };
+        }
+
+        // Render rebirth tab
+        function renderRebirthTab() {
+            const nextTier = userProfile.rebirthData.tier + 1;
+            const req = getRebirthRequirements(nextTier);
+            const status = checkRebirthRequirements();
+            
+            document.getElementById('currentTier').textContent = userProfile.rebirthData.tier;
+            document.getElementById('totalRebirths').textContent = userProfile.rebirthData.totalRebirths;
+            document.getElementById('lifetimeGems').textContent = userProfile.rebirthData.totalGemsEarned;
+            
+            // Requirements
+            const totalCosmetics = getTotalCosmetics();
+            const totalSwords = (userProfile.ownedCosmetics?.swords || []).filter(s => s !== 'none').length;
+            
+            const reqList = document.getElementById('requirementsList');
+            reqList.innerHTML = `
+                <div class="requirement-item">
+                    <span class="requirement-label">💰 Coins</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (coins / req.coins) * 100)}%"></div>
+                        <div class="progress-text">${coins.toLocaleString()} / ${req.coins.toLocaleString()}</div>
+                    </div>
+                    <span class="requirement-status ${status.coins ? 'met' : 'not-met'}">${status.coins ? '✅' : '❌'}</span>
+                </div>
+                <div class="requirement-item">
+                    <span class="requirement-label">🎨 Cosmetics</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (totalCosmetics / req.cosmetics) * 100)}%"></div>
+                        <div class="progress-text">${totalCosmetics} / ${req.cosmetics}</div>
+                    </div>
+                    <span class="requirement-status ${status.cosmetics ? 'met' : 'not-met'}">${status.cosmetics ? '✅' : '❌'}</span>
+                </div>
+                <div class="requirement-item">
+                    <span class="requirement-label">🎮 Unlocked Games</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (userProfile.unlockedGames.length / req.games) * 100)}%"></div>
+                        <div class="progress-text">${userProfile.unlockedGames.length} / ${req.games}</div>
+                    </div>
+                    <span class="requirement-status ${status.games ? 'met' : 'not-met'}">${status.games ? '✅' : '❌'}</span>
+                </div>
+                <div class="requirement-item">
+                    <span class="requirement-label">⚔️ Swords</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, (totalSwords / req.swords) * 100)}%"></div>
+                        <div class="progress-text">${totalSwords} / ${req.swords}</div>
+                    </div>
+                    <span class="requirement-status ${status.swords ? 'met' : 'not-met'}">${status.swords ? '✅' : '❌'}</span>
+                </div>
+            `;
+            
+            // Impact lists
+            document.getElementById('loseList').innerHTML = `
+                • All coins (${coins.toLocaleString()})<br>
+                • All cosmetics (${totalCosmetics} items)<br>
+                • Equipped items reset
+            `;
+            document.getElementById('keepList').innerHTML = `
+                • Username (${userProfile.username})<br>
+                • Status (${userProfile.status})<br>
+                • Unlocked games (${userProfile.unlockedGames.length})<br>
+                • All gems (${userProfile.gems})
+            `;
+            document.getElementById('gainList').innerHTML = `
+                💎 ${req.gems} gems
+            `;
+            
+            // Button state
+            const btn = document.getElementById('rebirthBtn');
+            btn.disabled = !status.allMet;
+            btn.textContent = status.allMet ? 'REBIRTH NOW' : 'REQUIREMENTS NOT MET';
+        }
+
+        // Perform rebirth
+        document.getElementById('rebirthBtn').addEventListener('click', () => {
+            if (!checkRebirthRequirements().allMet) return;
+            
+            const nextTier = userProfile.rebirthData.tier + 1;
+            const req = getRebirthRequirements(nextTier);
+            
+            if (!confirm(`Are you sure you want to rebirth to Tier ${nextTier}?\n\nYou will lose all coins and cosmetics, but gain ${req.gems} gems!`)) return;
+            
+            // Show animation
+            showRebirthAnimation(nextTier, req.gems);
+            
+            // Wait for animation, then apply rebirth
+setTimeout(() => {
+    // Reset coins with Rebirth Power bonus
+    const rebirthPowerLevel = userProfile.gemUpgrades?.rebirth_boost || 0;
+    const startingCoins = 50 + (rebirthPowerLevel * 50);
+    coins = startingCoins;
+    setCoins(coins);
+                // Reset cosmetics
+                userProfile.ownedCosmetics = {
+                    colors: ['default'],
+                    hats: ['none'],
+                    faces: ['none'],
+                    effects: ['none'],
+                    swords: ['none']
+                };
+                userProfile.equippedCosmetics = {
+                    color: 'default',
+                    hat: 'none',
+                    face: 'none',
+                    effect: 'none',
+                    sword: 'none'
+                };
+                
+                // Add gems
+                userProfile.gems += req.gems;
+                userProfile.rebirthData.tier = nextTier;
+                userProfile.rebirthData.totalRebirths++;
+                userProfile.rebirthData.totalGemsEarned += req.gems;
+                
+                saveUserProfile(userProfile);
+                renderRebirthTab();
+                
+                // Hide animation after showing success
+                setTimeout(() => {
+                    document.getElementById('rebirthOverlay').classList.remove('active');
+                }, 2000);
+            }, 3000);
+        });
+
+        // Show rebirth animation
+        function showRebirthAnimation(tier, gems) {
+            const overlay = document.getElementById('rebirthOverlay');
+            const particlesContainer = document.getElementById('particles');
+            
+            // Update text
+            document.getElementById('animTier').textContent = `TIER ${tier}`;
+            document.getElementById('animGems').textContent = `+${gems} 💎`;
+            
+            // Clear old particles
+            particlesContainer.innerHTML = '';
+            
+            // Create particles
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const angle = (Math.PI * 2 * i) / 50;
+                const distance = 200 + Math.random() * 300;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.left = '50%';
+                particle.style.top = '50%';
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                particle.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+            
+            // Show overlay
+            overlay.classList.add('active');
+        }
+
+        // Initialize
+        renderRebirthTab();
+    </script>
+</body>
+</html>

@@ -1,0 +1,831 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .back-btn {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-bottom: 30px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: #252525;
+            border-color: #555;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .left-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+        #bigPlayerSphere {
+            margin: 0 auto 20px;
+            display: block;
+            cursor: grab;
+        }
+        #bigPlayerSphere:active {
+            cursor: grabbing;
+        }
+        .username {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .status.admin { color: #ff4444; }
+        .status.owner { color: #a855f7; }
+        .status.rare { color: #3b82f6; }
+        .status.legendary { color: #ffd700; }
+        .status.mystical { color: #008c99; text-shadow: 0 0 10px rgba(168, 85, 247, 0.5); }
+        .coins-display {
+            font-size: 20px;
+            color: #d69e2e;
+            margin-bottom: 20px;
+        }
+        .right-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            border-radius: 6px 6px 0 0;
+        }
+        .tab:hover {
+            color: #fff;
+            background: #252525;
+        }
+        .tab.active {
+            color: #fff;
+            background: #252525;
+            border-bottom: 2px solid #d69e2e;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+        }
+        .stat-label {
+            color: #888;
+        }
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        .cosmetics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .cosmetic-item {
+            background: #252525;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cosmetic-item:hover {
+            border-color: #555;
+            transform: translateY(-2px);
+        }
+        .cosmetic-item.equipped {
+            border-color: #d69e2e;
+            background: #2a2a1a;
+        }
+        .cosmetic-item.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .cosmetic-preview {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
+        }
+        .cosmetic-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .cosmetic-status {
+            font-size: 12px;
+            color: #d69e2e;
+        }
+        .share-btn {
+            padding: 12px 24px;
+            background: #38a169;
+            border: 1px solid #2f855a;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+        .share-btn:hover {
+            background: #2f855a;
+        }
+        @media (max-width: 768px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="PlayerSphere.js"></script>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" class="back-btn">← BACK TO GAMES</a>
+    <h1>👤 PLAYER PROFILE</h1>
+
+    <div class="profile-grid">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <canvas id="bigPlayerSphere" width="200" height="200"></canvas>
+            <div class="username" id="profileUsername">guest000000</div>
+            <div class="status" id="profileStatus">player</div>
+            <div class="coins-display">💰 <span id="profileCoins">0</span> coins</div>
+            <button class="share-btn" id="shareBtn">📸 Share Profile</button>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="tabs">
+                <button class="tab active" data-tab="stats">📊 Stats</button>
+                <button class="tab" data-tab="cosmetics">🎨 Cosmetics</button>
+                <button class="tab" data-tab="potions">🧪 Potions</button>
+                <button class="tab" data-tab="nametags">🎖️ Nametags</button>
+            </div>
+
+            <!-- Stats Tab -->
+            <div class="tab-content active" id="stats">
+                <div class="stat-row">
+                    <span class="stat-label">Total Playtime</span>
+                    <span class="stat-value" id="statPlaytime">0 minutes</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="statStatus">player</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total Coins</span>
+                    <span class="stat-value" id="statCoins">0</span>
+                </div>
+                <div class="stat-row">
+    <span class="stat-label">💎 Gems</span>
+    <span class="stat-value" id="statGems">0</span>
+</div>
+<div class="stat-row">
+    <span class="stat-label">Rebirth Tier</span>
+    <span class="stat-value" id="statRebirthTier">0</span>
+</div>
+<div class="stat-row">
+    <span class="stat-label">Total Rebirths</span>
+    <span class="stat-value" id="statTotalRebirths">0</span>
+</div>
+            </div>
+
+            <!-- Cosmetics Tab -->
+            <div class="tab-content" id="cosmetics">
+                <h3 style="margin-bottom: 20px; color: #d69e2e;">🌈 Colors</h3>
+                <div class="cosmetics-grid" id="colorsGrid"></div>
+
+                <h3 style="margin: 30px 0 20px; color: #d69e2e;">🎩 Hats</h3>
+                <div class="cosmetics-grid" id="hatsGrid"></div>
+
+                <h3 style="margin: 30px 0 20px; color: #d69e2e;">😊 Faces</h3>
+                <div class="cosmetics-grid" id="facesGrid"></div>
+
+                <h3 style="margin: 30px 0 20px; color: #d69e2e;">✨ Effects</h3>
+                <div class="cosmetics-grid" id="effectsGrid"></div>
+
+                <h3 style="margin: 30px 0 20px; color: #d69e2e;">⚔️ Swords</h3>
+                <div class="cosmetics-grid" id="swordsGrid"></div>
+            </div>
+
+            <!-- Potions Tab -->
+            <div class="tab-content" id="potions">
+                <h3 style="margin-bottom: 20px; color: #9333ea;">⚡ Lightning Potions</h3>
+                <div style="background: #252525; border: 2px solid #9333ea; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 18px; margin-bottom: 5px;">⚡ Lightning Potion</div>
+                            <div style="color: #888; font-size: 14px;">Doubles all profit for 5 minutes</div>
+                            <div style="color: #9333ea; font-size: 16px; margin-top: 10px;">Owned: <span id="lightningPotionCount">0</span></div>
+                        </div>
+                        <button id="useLightningPotion" style="padding: 12px 24px; background: #9333ea; border: 1px solid #7e22ce; border-radius: 6px; color: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s;">Use Potion</button>
+                    </div>
+                </div>
+                
+                <div id="activePotionEffects"></div>
+            </div>
+            <div class="tab-content" id="nametags">
+    <h3 style="margin-bottom: 20px; color: #d69e2e;">🎖️ Nametags</h3>
+    <div class="cosmetics-grid" id="nametagsGrid"></div>
+</div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        const _0x4a2b = (s) => btoa(s).split('').reverse().join('');
+        const _0x2b4a = (s) => atob(s.split('').reverse().join(''));
+        const _0x9c3d = 'X2NvaW5EYXRh';
+
+function getUserProfile() {
+    try {
+        const stored = localStorage.getItem('userProfile');
+        if (stored) {
+            const profile = JSON.parse(stored);
+            
+            // Ensure equippedCosmetics exists
+            if (!profile.equippedCosmetics) {
+                profile.equippedCosmetics = {
+                    color: 'default',
+                    hat: 'none',
+                    face: 'none',
+                    effect: 'none',
+                    sword: 'none'
+                };
+            }
+            
+            // Ensure ownedCosmetics exists
+            if (!profile.ownedCosmetics) {
+                profile.ownedCosmetics = {
+                    colors: ['default'],
+                    hats: ['none'],
+                    faces: ['none'],
+                    effects: ['none'],
+                    swords: ['none']
+                };
+            }
+            if (!profile.ownedCosmetics.colors) profile.ownedCosmetics.colors = ['default'];
+            if (!profile.ownedCosmetics.hats) profile.ownedCosmetics.hats = ['none'];
+            if (!profile.ownedCosmetics.faces) profile.ownedCosmetics.faces = ['none'];
+            if (!profile.ownedCosmetics.effects) profile.ownedCosmetics.effects = ['none'];
+            if (!profile.ownedCosmetics.swords) profile.ownedCosmetics.swords = ['none'];
+            
+            // ✅ ADD NAMETAG CHECK HERE
+            if (!profile.nametag) {
+                profile.nametag = {
+                    equipped: 'none',
+                    unlocked: ['none']
+                };
+            }
+            if (!profile.nametag.equipped) profile.nametag.equipped = 'none';
+            if (!Array.isArray(profile.nametag.unlocked)) profile.nametag.unlocked = ['none'];
+            
+            // Save the updated profile
+            saveUserProfile(profile);
+            
+            return profile;
+        }
+    } catch(e) {
+        console.error('Error loading profile:', e);
+    }
+    return { 
+        username: 'guest000000',
+        status: 'player',
+        equippedCosmetics: { color: 'default', hat: 'none', face: 'none', effect: 'none', sword: 'none' },
+        ownedCosmetics: { colors: ['default'], hats: ['none'], faces: ['none'], effects: ['none'], swords: ['none'] },
+        nametag: { equipped: 'none', unlocked: ['none'] }
+    };
+}
+
+        function saveUserProfile(profile) {
+            try {
+                localStorage.setItem('userProfile', JSON.stringify(profile));
+            } catch(e) {}
+        }
+
+        function getCoins() {
+            try {
+                const stored = localStorage.getItem(_0x2b4a(_0x9c3d));
+                if (stored) {
+                    return parseInt(_0x2b4a(stored));
+                }
+            } catch(e) {}
+            return 10;
+        }
+
+        function getTotalActiveTime() {
+    try {
+        const stored = localStorage.getItem('totalActiveTime');
+        return stored ? parseInt(stored) : 0;
+    } catch(e) {}
+    return 0;
+}
+        function getActivePotion() {
+    try {
+        const saved = localStorage.getItem('_activePotion');
+        if (saved) {
+            const potion = JSON.parse(saved);
+            const now = Date.now();
+            
+            // Check if expired
+            if (now >= potion.endTime) {
+                clearActivePotion();
+                return null;
+            }
+            return potion;
+        }
+    } catch(e) {}
+    return null;
+}
+
+function setPotionActive(potion) {
+    try {
+        localStorage.setItem('_activePotion', JSON.stringify(potion));
+        
+        // Auto-clear after expiration
+        const duration = potion.endTime - Date.now();
+        setTimeout(() => {
+            clearActivePotion();
+            alert('⚡ Lightning Potion effect ended!');
+        }, duration);
+    } catch(e) {}
+}
+
+function clearActivePotion() {
+    try {
+        localStorage.removeItem('_activePotion');
+    } catch(e) {}
+}
+
+function isPotionActive() {
+    return getActivePotion() !== null;
+}
+
+       let userProfile = getUserProfile();
+        let coins = getCoins();
+        let rotation = { x: 0, y: 0 };
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        let bigSphereRenderer = null;
+
+        // Draw big player sphere
+        function drawBigPlayerSphere() {
+            if (!bigSphereRenderer) {
+                bigSphereRenderer = new PlayerSphere('bigPlayerSphere', 200);
+            }
+            
+            bigSphereRenderer.draw(userProfile.equippedCosmetics);
+        }
+
+// Animate black hole effect
+function updateBigSphereAnimation() {
+    const animatedEffects = ['blackhole', 'wings', 'glitch', 'mystical-aura', 'golden-aura'];
+    if (animatedEffects.includes(userProfile.equippedCosmetics.effect)) {
+                if (bigSphereRenderer && !bigSphereRenderer.shouldAnimate) {
+                    bigSphereRenderer.startAnimation(userProfile.equippedCosmetics);
+                }
+            } else {
+                if (bigSphereRenderer && bigSphereRenderer.shouldAnimate) {
+                    bigSphereRenderer.stopAnimation();
+                }
+            }
+        }
+        
+        // Initialize animation
+        updateBigSphereAnimation();
+        // Drag to rotate (placeholder for future 3D)
+        const canvas = document.getElementById('bigPlayerSphere');
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+                rotation.y += dx * 0.01;
+                rotation.x += dy * 0.01;
+                lastMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+       // Around line 250, update the loadProfileData function
+function loadProfileData() {
+    document.getElementById('profileUsername').textContent = userProfile.username;
+    document.getElementById('profileStatus').textContent = userProfile.status;
+    document.getElementById('profileStatus').className = 'status ' + userProfile.status;
+    document.getElementById('profileCoins').textContent = coins.toLocaleString();
+
+    document.getElementById('statStatus').textContent = userProfile.status;
+    document.getElementById('statCoins').textContent = coins.toLocaleString();
+    document.getElementById('statGems').textContent = (userProfile.gems || 0).toLocaleString();
+    document.getElementById('statRebirthTier').textContent = userProfile.rebirthData?.tier || 0;
+    document.getElementById('statTotalRebirths').textContent = userProfile.rebirthData?.totalRebirths || 0;
+    
+    const totalTime = getTotalActiveTime();
+    const minutes = Math.floor(totalTime / 60);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    // Better formatting
+    let timeText = '';
+    if (hours > 0) {
+        timeText = `${hours}h ${remainingMinutes}m`;
+    } else {
+        timeText = `${minutes} minutes`;
+    }
+    
+    document.getElementById('statPlaytime').textContent = timeText;
+
+    drawBigPlayerSphere();
+    updateBigSphereAnimation();
+}
+
+        // Cosmetics data
+        const cosmetics = {
+            colors: [
+                { id: 'default', name: 'Default Gray', preview: '#555' },
+                { id: 'sunset', name: 'Sunset', preview: 'linear-gradient(#ff6b6b, #ff9a3c)' },
+                { id: 'ocean', name: 'Ocean', preview: 'linear-gradient(#4cc9f0, #0077b6)' },
+                { id: 'galaxy', name: 'Galaxy', preview: 'linear-gradient(#c77dff, #3c096c)' },
+                { id: 'blood', name: 'Blood', preview: 'linear-gradient(#ff0000, #8b0000)' },
+                { id: 'quartz', name: 'Quartz', preview: 'linear-gradient(#ffffff, #cccccc)' },
+                { id: 'ruby', name: 'Ruby', preview: 'linear-gradient(#e0115f, #0d0d0d)' },
+                { id: 'obsidian', name: 'Obsidian Gold', preview: 'linear-gradient(#ffd36a, #2b1a0f, #050505)' },
+                { id: 'opaline', name: 'Opaline', preview: 'linear-gradient(#e5e5e5, #2f2f2f, #050505)' }
+            ],
+            hats: [
+                { id: 'none', name: 'None', icon: '❌' },
+                { id: 'crown', name: 'Crown', icon: '👑' },
+                { id: 'tophat', name: 'Top Hat', icon: '🎩' },
+                { id: 'wizard', name: 'Wizard Hat', icon: '🧙' },
+                { id: 'santa', name: 'Santa Hat', icon: '🎅' },
+                { id: 'party', name: 'Party Hat', icon: '🎉' }
+            ],
+            faces: [
+                { id: 'none', name: 'None', icon: '😐' },
+                { id: 'happy', name: 'Happy', icon: '😊' },
+                { id: 'evil', name: 'Evil', icon: '😈' },
+                { id: 'cool', name: 'Cool (Sunglasses)', icon: '😎' }
+            ],
+           effects: [
+                { id: 'none', name: 'None', icon: '❌' },
+                { id: 'blackhole', name: 'Black Holes', icon: '🌑' },
+                { id: 'wings', name: 'Black Wings', icon: '🖤' },
+                { id: 'mystical-aura', name: 'Mystical Aura', icon: '✨' },
+                { id: 'golden-aura', name: 'Golden Aura', icon: '✨' }
+            ],
+
+            swords: [
+                { id: 'none', name: 'None', icon: '❌' },
+                { id: 'stick', name: 'Stick Sword', icon: '🦯' },
+                { id: 'stone', name: 'Stone Sword', icon: '⚔️' },
+                { id: 'lightning', name: 'Lightning Blade', icon: '⚡' },
+                { id: 'dragon', name: 'Dragon Sword', icon: '🐉' }
+            ]
+        };
+
+        // Render cosmetics
+        function renderCosmetics() {
+            // Colors
+            const colorsGrid = document.getElementById('colorsGrid');
+            colorsGrid.innerHTML = '';
+            cosmetics.colors.forEach(item => {
+                const owned = userProfile.ownedCosmetics.colors.includes(item.id);
+                const equipped = userProfile.equippedCosmetics.color === item.id;
+                
+                const div = document.createElement('div');
+                div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+                div.innerHTML = `
+                    <div class="cosmetic-preview" style="background: ${item.preview}; border-radius: 50%;"></div>
+                    <div class="cosmetic-name">${item.name}</div>
+                    <div class="cosmetic-status">${equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED'}</div>
+                `;
+                if (owned) {
+                    div.onclick = () => equipCosmetic('color', item.id);
+                }
+                colorsGrid.appendChild(div);
+            });
+
+            // Hats
+            const hatsGrid = document.getElementById('hatsGrid');
+            hatsGrid.innerHTML = '';
+            cosmetics.hats.forEach(item => {
+                const owned = userProfile.ownedCosmetics.hats.includes(item.id);
+                const equipped = userProfile.equippedCosmetics.hat === item.id;
+                
+                const div = document.createElement('div');
+                div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+                div.innerHTML = `
+                    <div class="cosmetic-preview" style="font-size: 48px;">${item.icon}</div>
+                    <div class="cosmetic-name">${item.name}</div>
+                    <div class="cosmetic-status">${equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED'}</div>
+                `;
+                if (owned) {
+                    div.onclick = () => equipCosmetic('hat', item.id);
+                }
+                hatsGrid.appendChild(div);
+            });
+
+            // Faces
+            const facesGrid = document.getElementById('facesGrid');
+            facesGrid.innerHTML = '';
+            cosmetics.faces.forEach(item => {
+                const owned = userProfile.ownedCosmetics.faces.includes(item.id);
+                const equipped = userProfile.equippedCosmetics.face === item.id;
+                
+                const div = document.createElement('div');
+                div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+                div.innerHTML = `
+                    <div class="cosmetic-preview" style="font-size: 48px;">${item.icon}</div>
+                    <div class="cosmetic-name">${item.name}</div>
+                    <div class="cosmetic-status">${equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED'}</div>
+                `;
+                if (owned) {
+                    div.onclick = () => equipCosmetic('face', item.id);
+                }
+                facesGrid.appendChild(div);
+            });
+
+            // Effects
+            const effectsGrid = document.getElementById('effectsGrid');
+            effectsGrid.innerHTML = '';
+            cosmetics.effects.forEach(item => {
+                const owned = userProfile.ownedCosmetics.effects.includes(item.id);
+                const equipped = userProfile.equippedCosmetics.effect === item.id;
+                
+                const div = document.createElement('div');
+                div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+                div.innerHTML = `
+                    <div class="cosmetic-preview" style="font-size: 48px;">${item.icon}</div>
+                    <div class="cosmetic-name">${item.name}</div>
+                    <div class="cosmetic-status">${equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED'}</div>
+                `;
+                if (owned) {
+                    div.onclick = () => equipCosmetic('effect', item.id);
+                }
+                effectsGrid.appendChild(div);
+            });
+
+            // Swords
+const swordsGrid = document.getElementById('swordsGrid');
+swordsGrid.innerHTML = '';
+cosmetics.swords.forEach(item => {
+    const owned = userProfile.ownedCosmetics.swords.includes(item.id);
+    const equipped = userProfile.equippedCosmetics.sword === item.id;
+    
+    let statusText = equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED';
+    
+    // Show cooldown for lightning blade
+    if (item.id === 'lightning' && equipped) {
+        try {
+            const saved = localStorage.getItem('_lightningBlade');
+            if (saved) {
+                const state = JSON.parse(saved);
+                const now = Date.now();
+                if (now < state.cooldownEnd) {
+                    const cooldownMin = Math.ceil((state.cooldownEnd - now) / 60000);
+                    statusText = `Cooldown: ${cooldownMin}min`;
+                }
+            }
+        } catch(e) {}
+    }
+    
+    const div = document.createElement('div');
+    div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+    div.innerHTML = `
+        <div class="cosmetic-preview" style="font-size: 48px;">${item.icon}</div>
+        <div class="cosmetic-name">${item.name}</div>
+        <div class="cosmetic-status">${statusText}</div>
+    `;
+    if (owned) {
+        div.onclick = () => equipCosmetic('sword', item.id);
+    }
+    swordsGrid.appendChild(div);
+});
+        }
+
+        function renderPotions() {
+    if (!userProfile.potions) userProfile.potions = {};
+    document.getElementById('lightningPotionCount').textContent = userProfile.potions.lightning || 0;
+    
+    // Show active effects
+    updateActivePotionDisplay();
+}
+        function renderNametags() {
+     const nametags = [
+        { id: 'none', name: 'None', description: 'No nametag' },
+        { id: 'warhero', name: 'War Hero', description: 'Reach 1350 ELO in Gladiators' },
+        { id: 'donator', name: 'Donator', description: 'Donate 100,000+ coins/gems' },
+        { id: 'rich', name: 'Rich', description: 'Own 50+ gems' },
+        { id: 'm0gged', name: 'M0GGED', description: 'Get mogged by owner. Meaning up to interpretation' },
+        { id: 'secret', name: 'SECRET', description: '???' },
+        { id: 'cracked', name: 'CRACKED', description: 'u are cracked. 8 hours of work' },
+        { id: 'cosmic', name: 'COSMIC', description: 'Rebirth 10 times' },
+        { id: 'bloodlust', name: 'BLOODLUST', description: 'Reach 1500 ELO in Gladiators' },
+        { id: 'diamond', name: 'DIAMOND', description: '200+ gems AND 500k+ donated' },
+        { id: 'rotted', name: 'ROTTED', description: 'Be rotted. Play a specific rotted game.' },
+        { id: 'freebird', name: 'FREEBIRD', description: 'Why are you on right now there is no school?' },
+        { id: 'celestial', name: 'CELESTIAL', description: 'Complete 20 rebirths' },
+        { id: 'ethereal', name: 'ETHEREAL', description: 'Play at 3:00 AM' },
+        { id: 'prismatic', name: 'PRISMATIC', description: 'Earn 1,000,000,000 total coins, play at 12:00 am or pm, and 12 hours of playtime.' }
+    ];
+
+    
+    const grid = document.getElementById('nametagsGrid');
+    grid.innerHTML = '';
+    
+    nametags.forEach(tag => {
+        const owned = userProfile.nametag.unlocked.includes(tag.id);
+        const equipped = userProfile.nametag.equipped === tag.id;
+        
+        const div = document.createElement('div');
+        div.className = 'cosmetic-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+        div.innerHTML = `
+            <div class="cosmetic-preview" style="font-size: 36px;">🎖️</div>
+            <div class="cosmetic-name">${tag.name}</div>
+            <div style="font-size: 11px; color: #666; margin: 5px 0;">${tag.description}</div>
+            <div class="cosmetic-status">${equipped ? 'EQUIPPED' : owned ? 'Click to equip' : 'LOCKED'}</div>
+        `;
+        if (owned) {
+            div.onclick = () => {
+                userProfile.nametag.equipped = tag.id;
+                saveUserProfile(userProfile);
+                renderNametags();
+            };
+        }
+        grid.appendChild(div);
+    });
+}
+
+function updateActivePotionDisplay() {
+    const container = document.getElementById('activePotionEffects');
+    const activePotion = getActivePotion();
+    
+    if (!activePotion) {
+        container.innerHTML = '<p style="color: #888; text-align: center;">No active potion effects</p>';
+        return;
+    }
+    
+    const remaining = Math.ceil((activePotion.endTime - Date.now()) / 1000);
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+    
+    container.innerHTML = `
+        <h4 style="margin-bottom: 15px; color: #9333ea;">Active Effect:</h4>
+        <div style="background: #1a1a1a; padding: 15px; border-radius: 6px; border: 2px solid #9333ea; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 10px;">⚡</div>
+            <div style="font-size: 16px; color: #9333ea; font-weight: bold;">${minutes}m ${seconds}s remaining</div>
+        </div>
+    `;
+}
+
+// Use lightning potion
+// Use lightning potion
+document.getElementById('useLightningPotion').addEventListener('click', () => {
+    if (!userProfile.potions.lightning || userProfile.potions.lightning <= 0) {
+        alert('❌ You don\'t have any Lightning Potions!');
+        return;
+    }
+    
+    // Check if already active
+    if (isPotionActive()) {
+        alert('⚡ A potion is already active! Wait for it to finish before using another.');
+        return;
+    }
+    
+    // Consume potion
+    userProfile.potions.lightning--;
+    saveUserProfile(userProfile);
+    
+    // Set single active potion
+    setPotionActive({
+        type: 'lightning',
+        endTime: Date.now() + (5 * 60 * 1000)
+    });
+    
+    alert('⚡ Lightning Potion used! All profits DOUBLED for 5 minutes!');
+    renderPotions();
+});
+
+// Initialize
+renderPotions();
+setInterval(updateActivePotionDisplay, 1000);
+
+        // Equip cosmetic
+function equipCosmetic(type, id) {
+            if (type === 'color') {
+                userProfile.equippedCosmetics.color = id;
+            } else if (type === 'hat') {
+                userProfile.equippedCosmetics.hat = id;
+            } else if (type === 'face') {
+                userProfile.equippedCosmetics.face = id;
+            } else if (type === 'effect') {
+                userProfile.equippedCosmetics.effect = id;
+            } else if (type === 'sword') {
+        userProfile.equippedCosmetics.sword = id;
+    }
+            
+            saveUserProfile(userProfile);
+            drawBigPlayerSphere();
+            updateBigSphereAnimation();
+            renderCosmetics();
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Share button
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const canvas = document.getElementById('bigPlayerSphere');
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${userProfile.username}_sphere.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('✅ Sphere image downloaded!');
+            });
+        });
+
+        // Initialize
+        loadProfileData();
+        renderCosmetics();
+        renderNametags();
+    </script>
+</body>
+</html>

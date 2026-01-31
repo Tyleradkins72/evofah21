@@ -1,0 +1,1801 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gladiator Arena - ELO Ranked</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a; color: #fff; overflow: hidden;
+        }
+        
+        .screen { display: none; width: 100vw; height: 100vh; padding: 20px; }
+        .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        h1 { font-size: 48px; margin-bottom: 20px; 
+            background: linear-gradient(135deg, #ff4500 0%, #ffd700 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        #eloDisplay {
+            font-size: 32px; font-weight: bold; color: #ffd700;
+            margin-bottom: 30px; text-align: center;
+        }
+        .elo-label { font-size: 16px; color: #888; margin-bottom: 5px; }
+        
+        #queueStatus {
+            background: #1a1a1a; border: 2px solid #333; border-radius: 12px;
+            padding: 30px; min-width: 400px; text-align: center;
+        }
+        
+        .match-type-selector {
+            display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;
+        }
+        .match-type-btn {
+            padding: 12px 24px; background: #333; border: 2px solid #555;
+            border-radius: 8px; color: #fff; font-weight: bold; font-size: 16px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .match-type-btn:hover { background: #444; transform: scale(1.05); }
+        .match-type-btn.active { background: #d69e2e; border-color: #b7791f; color: #000; }
+        
+        #botDifficultySelector {
+            display: none; margin-bottom: 20px;
+        }
+        .difficulty-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            margin-top: 10px;
+        }
+        .difficulty-btn {
+            padding: 15px; background: #2a2a2a; border: 2px solid #444;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .difficulty-btn:hover { background: #333; border-color: #666; }
+        .difficulty-btn.selected { background: #d69e2e; border-color: #b7791f; }
+        .difficulty-btn .diff-name { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+        .difficulty-btn .diff-desc { font-size: 12px; color: #888; }
+        .difficulty-btn.selected .diff-desc { color: #000; }
+        
+        #findMatchBtn {
+            padding: 20px 60px; background: #d69e2e; border: 2px solid #b7791f;
+            border-radius: 8px; color: #000; font-weight: bold; font-size: 20px;
+            cursor: pointer; transition: all 0.2s; margin: 20px 0;
+        }
+        #findMatchBtn:hover { background: #b7791f; transform: scale(1.05); }
+        #findMatchBtn:disabled { 
+            background: #444; border-color: #333; color: #666; 
+            cursor: not-allowed; transform: scale(1);
+        }
+        
+        #queueMessage {
+            font-size: 18px; color: #888; margin-top: 15px;
+            min-height: 30px;
+        }
+        
+        #leaderboard {
+            background: #1a1a1a; border: 2px solid #333; border-radius: 12px;
+            padding: 20px; max-width: 500px; margin-top: 20px; max-height: 300px; overflow-y: auto;
+        }
+        .leaderboard-entry {
+            padding: 10px; background: #0a0a0a; border-radius: 6px;
+            margin-bottom: 8px; display: flex; justify-content: space-between;
+        }
+        .leaderboard-rank { color: #d69e2e; font-weight: bold; margin-right: 10px; }
+        
+        #battleArena {
+            width: 100%; height: 100%; background: #1a1a1a;
+            position: relative; overflow: hidden;
+        }
+        
+        .arena-box {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #1a1a1a 100%);
+            border: 4px solid #444;
+        }
+        
+        .player {
+            position: absolute; width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; z-index: 10;
+        }
+        
+        .player-name {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            font-weight: bold; font-size: 12px; white-space: nowrap;
+            background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px;
+        }
+        
+        .health-bar {
+            position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 16px; background: #333; border-radius: 4px; overflow: hidden;
+        }
+        .health-fill {
+            width: 100%; height: 100%; background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+            transition: width 0.3s;
+        }
+        .health-text {
+            position: absolute; top: 0; left: 0; right: 0; text-align: center;
+            line-height: 16px; font-size: 10px; font-weight: bold;
+            text-shadow: 0 0 4px rgba(0,0,0,0.8);
+        }
+        
+        .sword-swing {
+            position: absolute; width: 60px; height: 4px; background: #fff;
+            border-radius: 2px; transform-origin: left center;
+            pointer-events: none; opacity: 0;
+        }
+        
+       #attackMeter {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    width: 300px; background: rgba(26, 26, 26, 0.85); border: 2px solid rgba(51, 51, 51, 0.8);
+    border-radius: 12px; padding: 12px; z-index: 100;
+    backdrop-filter: blur(4px);
+}
+#meterLabel {
+    text-align: center; margin-bottom: 8px; font-size: 14px; font-weight: bold;
+}
+#meterBar {
+    width: 100%; height: 24px; background: #333; border-radius: 6px;
+    overflow: hidden; position: relative;
+}
+        #meterFill {
+            width: 0%; height: 100%; transition: width 0.05s linear;
+            background: linear-gradient(90deg, #333 0%, #ef4444 10%, #fbbf24 50%, #4ade80 100%);
+        }
+        #attackInstruction {
+    text-align: center; margin-top: 8px; font-size: 12px; color: #888;
+}
+        
+        .damage-number {
+            position: absolute; font-size: 28px; font-weight: bold; color: #ff4444;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8); pointer-events: none;
+            animation: floatUp 1s ease-out forwards; z-index: 100;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-80px); }
+        }
+        .critical-hit { color: #ffd700; font-size: 36px; }
+        .dash-afterimage {
+    position: absolute; width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; pointer-events: none; z-index: 5;
+    animation: fadeOut 0.5s ease-out forwards;
+}
+@keyframes fadeOut {
+    0% { opacity: 0.6; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.7); }
+}
+
+#dashCooldown {
+    position: fixed; right: 30px; top: 50%; transform: translateY(-50%);
+    width: 60px; z-index: 100;
+}
+#dashLabel {
+    text-align: center; margin-bottom: 8px; font-size: 14px; font-weight: bold;
+    color: #a78bfa;
+}
+#dashIcon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; border: 3px solid #a78bfa;
+    margin: 0 auto 12px;
+    transition: all 0.2s;
+}
+#dashIcon.ready { 
+    animation: pulse 1.5s infinite;
+    cursor: pointer;
+}
+#dashIcon.ready:hover { transform: scale(1.1); }
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px #8b5cf6; }
+    50% { box-shadow: 0 0 40px #a78bfa; }
+}
+#dashIcon.cooling {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+#dashBarContainer {
+    width: 100%; height: 200px; background: rgba(26, 26, 26, 0.85);
+    border: 2px solid rgba(51, 51, 51, 0.8); border-radius: 12px;
+    overflow: hidden; position: relative;
+    backdrop-filter: blur(4px);
+}
+#dashBarFill {
+    width: 100%; height: 0%; background: linear-gradient(180deg, #8b5cf6 0%, #6366f1 100%);
+    position: absolute; bottom: 0; left: 0;
+    transition: height 0.1s linear;
+}
+#dashCooldownText {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 18px; font-weight: bold; color: #fff;
+    text-shadow: 0 0 8px rgba(0,0,0,0.8); z-index: 1;
+}
+        .weak-hit { color: #666; font-size: 20px; }
+        
+        #battleInfo {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            text-align: center; font-size: 18px; background: rgba(26, 26, 26, 0.9);
+            padding: 12px 24px; border-radius: 8px; font-weight: bold; z-index: 50;
+        }
+        
+        #resultsScreen h1 { margin-bottom: 30px; }
+        #eloChange { font-size: 28px; margin: 20px 0; font-weight: bold; }
+        .elo-gain { color: #4ade80; }
+        .elo-loss { color: #ef4444; }
+        #resultStats { font-size: 16px; color: #888; margin-bottom: 20px; }
+        .btn {
+            padding: 16px 48px; background: #d69e2e; border: 2px solid #b7791f;
+            border-radius: 8px; color: #000; font-weight: bold; font-size: 18px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { background: #b7791f; transform: scale(1.05); }
+    .leaderboard-tab {
+    padding: 10px 20px;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: #888;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.leaderboard-tab:hover {
+    background: #1a1a1a;
+    border-color: #555;
+}
+.leaderboard-tab.active {
+    background: #d69e2e;
+    border-color: #b7791f;
+    color: #000;
+}
+        #lobbyScreen.active {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+@media (max-width: 900px) {
+    #lobbyScreen.active {
+        flex-direction: column;
+        align-items: center;
+    }
+    #lobbyScreen.active > div {
+        flex-direction: column !important;
+    }
+    #leaderboardTabs {
+        width: 100% !important;
+        max-width: 500px !important;
+        margin-top: 20px !important;
+    }
+}
+    </style>
+    <script src="relay-client.js"></script>
+</head>
+<body>
+  <div id="lobbyScreen" class="screen active">
+    <div style="display: flex; gap: 30px; width: 100%; max-width: 1200px; align-items: flex-start;">
+        <!-- Left side - Main content -->
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+            <h1>⚔️ GLADIATOR ARENA</h1>
+            
+            <div id="eloDisplay">
+                <div class="elo-label">Your ELO Rating</div>
+                <div id="eloValue">1000</div>
+            </div>
+            
+            <div id="queueStatus">
+                <div class="match-type-selector">
+                    <button class="match-type-btn active" onclick="selectMatchType('pvp')">🎮 PvP</button>
+                    <button class="match-type-btn" onclick="selectMatchType('bot')">🤖 vs Bot</button>
+                </div>
+                
+                <div id="botDifficultySelector">
+                    <div style="margin-bottom: 10px; color: #888; font-size: 14px;">Select Difficulty:</div>
+                    <div class="difficulty-grid">
+                        <div class="difficulty-btn selected" onclick="selectDifficulty('easy')">
+                            <div class="diff-name">😊 Stupid noob</div>
+                            <div class="diff-desc">Actually easy.</div>
+                        </div>
+                        <div class="difficulty-btn" onclick="selectDifficulty('medium')">
+                            <div class="diff-name">😐 cracked ahh</div>
+                            <div class="diff-desc">Actually good.</div>
+                        </div>
+                        <div class="difficulty-btn" onclick="selectDifficulty('hard')">
+                            <div class="diff-name">😤 impossible pmo</div>
+                            <div class="diff-desc">If you beat this. . idk what to say.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="findMatchBtn" onclick="toggleQueue()">FIND MATCH</button>
+                <div id="queueMessage"></div>
+                <div id="pvpQueueInfo" style="margin-top: 15px; font-size: 14px; color: #888;">
+                    Players in queue: <span id="queueCount" style="color: #ffd700; font-weight: bold;">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right side - Leaderboard -->
+        <div id="leaderboardTabs" style="background: #1a1a1a; border: 2px solid #333; border-radius: 12px; padding: 20px; width: 400px; margin-top: 80px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                <button class="leaderboard-tab active" onclick="switchLeaderboardTab('online')">👥 Online</button>
+                <button class="leaderboard-tab" onclick="switchLeaderboardTab('alltime')">🏆 All-Time</button>
+            </div>
+            <div id="leaderboardContent" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+    
+    <!-- Battle Screen -->
+    <div id="battleScreen" class="screen">
+        <div id="battleArena">
+            <div id="battleInfo">FIGHT!</div>
+            
+            <div class="arena-box"></div>
+            
+           <div id="attackMeter">
+    <div id="meterLabel">Swing Power</div>
+    <div id="meterBar">
+        <div id="meterFill"></div>
+    </div>
+    <div id="attackInstruction">Arrow Keys or WASD to move • Click to attack when close • SPACE (MOUSE to Aim) to dash</div>
+</div>
+
+<div id="dashCooldown">
+    <div id="dashLabel">DASH</div>
+    <div id="dashIcon" class="ready">⚡</div>
+    <div id="dashBarContainer">
+        <div id="dashBarFill"></div>
+        <div id="dashCooldownText">READY</div>
+    </div>
+</div>
+        </div>
+    </div>
+    
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="screen">
+        <h1 id="resultTitle"></h1>
+        <div id="eloChange"></div>
+        <div id="resultStats"></div>
+        <button class="btn" onclick="returnToLobby()">RETURN TO LOBBY</button>
+    </div>
+
+    <script>
+        const RELAY_SERVER = 'wss://relayfah.onrender.com';
+        const ROOM_ID = 'gladiator_arena_elo';
+        const ATTACK_CHARGE_TIME = 2500;
+        const PLAYER_SPEED = 3;
+        const ATTACK_RANGE = 80;
+        const K_FACTOR = 60;
+        const DASH_COOLDOWN = 3000; 
+        const DASH_DISTANCE = 200;
+        const DASH_SPEED = 20;
+        
+        let relay, userProfile, myPlayerId;
+        let myElo = 1000;
+        let inQueue = false;
+        let currentMatch = null;
+        let matchType = 'pvp'; // 'pvp' or 'bot'
+        let selectedDifficulty = 'easy';
+        
+        // Battle state
+        let players = new Map();
+        let myHealth = 100, opponentHealth = 100;
+        let keys = {};
+        let meterCharge = 0;
+        let canAttack = true;
+        let isCharging = false;
+        let chargeInterval = null;
+        let positionUpdateInterval = null;
+        let heartbeatInterval = null;
+        let leaderboardUpdateInterval = null;
+        let dashCooldownRemaining = 0;
+        let dashCooldownTimer = null;
+        let isDashing = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        let botAIInterval = null;
+        
+        function selectMatchType(type) {
+            matchType = type;
+            document.querySelectorAll('.match-type-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (type === 'bot') {
+                document.getElementById('botDifficultySelector').style.display = 'block';
+                document.getElementById('pvpQueueInfo').style.display = 'none';
+            } else {
+                document.getElementById('botDifficultySelector').style.display = 'none';
+                document.getElementById('pvpQueueInfo').style.display = 'block';
+            }
+        }
+        
+        function selectDifficulty(diff) {
+            selectedDifficulty = diff;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.closest('.difficulty-btn').classList.add('selected');
+        }
+        
+        function loadUserProfile() {
+            try {
+                const stored = localStorage.getItem('userProfile');
+                if (stored) {
+                    userProfile = JSON.parse(stored);
+                    if (!userProfile.username) {
+                        userProfile.username = 'Player' + Math.floor(Math.random() * 10000);
+                    }
+                } else {
+                    userProfile = { username: 'Player' + Math.floor(Math.random() * 10000) };
+                    localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                }
+            } catch(e) {
+                userProfile = { username: 'Player' + Math.floor(Math.random() * 10000) };
+            }
+            
+            myPlayerId = userProfile.username;
+            
+            migrateEloData();
+            
+            const storedElo = localStorage.getItem('gladiator_elo');
+            if (storedElo) {
+                myElo = parseInt(storedElo);
+            } else {
+                myElo = 1000;
+                localStorage.setItem('gladiator_elo', '1000');
+            }
+            
+            updateEloDisplay();
+        }
+
+        function migrateEloData() {
+            const newElo = localStorage.getItem('gladiator_elo');
+            if (newElo) return;
+            
+            let highestElo = 1000;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('gladiator_elo_')) {
+                    const oldElo = parseInt(localStorage.getItem(key));
+                    if (oldElo > highestElo) {
+                        highestElo = oldElo;
+                    }
+                }
+            }
+            
+            localStorage.setItem('gladiator_elo', highestElo.toString());
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('gladiator_elo_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+
+        function updateEloDisplay() {
+            document.getElementById('eloValue').textContent = myElo;
+        }
+
+      function saveElo(newElo) {
+    myElo = newElo;
+    localStorage.setItem('gladiator_elo', newElo.toString());
+    updateEloDisplay();
+    
+
+    if (relay && relay.connected) {
+        relay.send({
+            type: 'update_elo',
+            userId: userProfile.permanentId,  // ← Stable ID
+            username: userProfile.username,    // ← Display name (can change)
+            elo: newElo
+        });
+    }
+}
+        async function connectToRelay() {
+            try {
+                relay = new RelayClient(RELAY_SERVER);
+                await relay.connect();
+                
+                relay.joinRoom(ROOM_ID, myPlayerId, JSON.stringify({ elo: myElo }));
+                relay.send({
+                    type: 'update_elo',
+                    username: myPlayerId,
+                    elo: myElo
+                });
+                
+                relay.on('joined', (data) => {
+                    updateLeaderboard();
+                });
+
+                relay.on('player_joined', (data) => {
+                    updateLeaderboard();
+                });
+                
+                relay.on('player_left', (data) => {
+                    updateLeaderboard();
+                    
+                    if (currentMatch && data.player.username === currentMatch.opponent) {
+                        endMatch(true, true);
+                    }
+                });
+                
+                relay.on('players_update', (data) => {
+                    const allPlayers = data.players || [];
+                    displayLeaderboard(allPlayers);
+                });
+                
+                relay.on('player_action', (data) => handlePlayerAction(data));
+                
+                relay.on('queue_count', (data) => {
+                    document.getElementById('queueCount').textContent = data.count || 0;
+                });
+                relay.on('leaderboard_data', (data) => {
+                    if (currentLeaderboardTab === 'alltime') {
+                        const list = document.getElementById('leaderboardContent');
+                        list.innerHTML = '';
+                        
+                        const leaderboard = data.leaderboard || [];
+                        
+                        leaderboard.forEach((p, idx) => {
+                            const entry = document.createElement('div');
+                            entry.className = 'leaderboard-entry';
+                            entry.innerHTML = `
+                                <div>
+                                    <span class="leaderboard-rank">#${idx + 1}</span>
+                                    <span>${p.username}${p.username === myPlayerId ? ' (You)' : ''}</span>
+                                </div>
+                                <div style="color: #ffd700; font-weight: bold;">${p.elo}</div>
+                            `;
+                            list.appendChild(entry);
+                        });
+                    }
+                });
+                
+                startHeartbeat();
+                startLeaderboardUpdates();
+                
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                alert('Failed to connect to game server');
+            }
+        }
+
+        function startHeartbeat() {
+            heartbeatInterval = setInterval(() => {
+                if (relay && relay.connected) {
+                    relay.send({ 
+                        type: 'heartbeat',
+                        elo: myElo,
+                        inQueue: inQueue,
+                        inMatch: !!currentMatch
+                    });
+                    
+                    if (!currentMatch) {
+                        relay.send({ type: 'get_queue_count' });
+                    }
+                }
+            }, 3000);
+        }
+
+        function startLeaderboardUpdates() {
+            leaderboardUpdateInterval = setInterval(() => {
+                if (relay && relay.connected && !currentMatch) {
+                    updateLeaderboard();
+                }
+            }, 1000);
+        }
+
+        function updateLeaderboard() {
+            relay.send({ type: 'get_players' });
+        }
+
+        let currentLeaderboardTab = 'online';
+
+function switchLeaderboardTab(tab) {
+    currentLeaderboardTab = tab;
+    
+    document.querySelectorAll('.leaderboard-tab').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    if (tab === 'alltime') {
+        loadAllTimeLeaderboard();
+    } else {
+        updateLeaderboard();
+    }
+}
+
+function loadAllTimeLeaderboard() {
+    if (relay && relay.connected) {
+        relay.send({ type: 'get_leaderboard' });
+    }
+}
+
+function displayLeaderboard(allPlayers) {
+    if (currentLeaderboardTab !== 'online') return;
+    
+    const list = document.getElementById('leaderboardContent');
+    list.innerHTML = '';
+    
+    const playersWithElo = allPlayers.map(p => {
+        let elo = 1000;
+        try {
+            const parsed = JSON.parse(p.status);
+            elo = parsed.elo || 1000;
+        } catch(e) {}
+        return { username: p.username, elo };
+    });
+    
+    playersWithElo.sort((a, b) => b.elo - a.elo);
+    
+    const top10 = playersWithElo.slice(0, 10);
+    
+    top10.forEach((p, idx) => {
+        const entry = document.createElement('div');
+        entry.className = 'leaderboard-entry';
+        entry.innerHTML = `
+            <div>
+                <span class="leaderboard-rank">#${idx + 1}</span>
+                <span>${p.username}${p.username === myPlayerId ? ' (You)' : ''}</span>
+            </div>
+            <div style="color: #ffd700; font-weight: bold;">${p.elo}</div>
+        `;
+        list.appendChild(entry);
+    });
+}
+
+        function toggleQueue() {
+            if (matchType === 'bot') {
+                startBotMatch();
+            } else {
+                if (inQueue) {
+                    leaveQueue();
+                } else {
+                    joinQueue();
+                }
+            }
+        }
+
+        function startBotMatch() {
+            const botElo = {
+                easy: 700,
+                medium: 1400,
+                hard: 3000
+            }[selectedDifficulty];
+            
+            currentMatch = {
+                opponent: `${selectedDifficulty.toUpperCase()} Bot`,
+                opponentId: 'bot_' + Date.now(),
+                opponentElo: botElo,
+                matchId: Date.now() + '_bot',
+                isBot: true,
+                botDifficulty: selectedDifficulty
+            };
+            
+            showScreen('battleScreen');
+            initBattle();
+        }
+
+        function joinQueue() {
+            inQueue = true;
+            document.getElementById('findMatchBtn').textContent = 'CANCEL';
+            document.getElementById('queueMessage').textContent = 'Searching for opponent...';
+            
+            relay.sendPlayerAction('join_queue', { elo: myElo, username: myPlayerId });
+        }
+
+        function leaveQueue() {
+            inQueue = false;
+            document.getElementById('findMatchBtn').textContent = 'FIND MATCH';
+            document.getElementById('queueMessage').textContent = '';
+            
+            relay.sendPlayerAction('leave_queue', {});
+        }
+
+        function handlePlayerAction(data) {
+            const action = data.action;
+            
+            if (action === 'join_queue') {
+                if (inQueue && !currentMatch && data.playerId !== relay.clientId) {
+                    const opponentData = data.actionData;
+                    startMatch(data.playerId, opponentData);
+                }
+            } else if (action === 'match_start' && data.actionData.opponentId === relay.clientId) {
+                acceptMatch(data.playerId, data.actionData);
+            } else if (action === 'player_move' && currentMatch) {
+                if (data.playerId === currentMatch.opponentId) {
+                    updateOpponentPosition(data.playerId, data.actionData);
+                }
+            } else if (action === 'attack' && currentMatch) {
+                if (data.playerId === currentMatch.opponentId) {
+                    handleOpponentAttack(data.actionData, data.playerId);
+                }
+            } else if (action === 'match_end' && currentMatch) {
+                if (data.playerId === currentMatch.opponentId) {
+                    receiveMatchEnd(data.actionData);
+                }
+            } else if (action === 'dash' && currentMatch) {
+                if (data.playerId === currentMatch.opponentId) {
+                    handleOpponentDash(data.actionData, data.playerId);
+                }
+            }
+        }
+
+        function startMatch(opponentId, opponentData) {
+            inQueue = false;
+            document.getElementById('findMatchBtn').textContent = 'FIND MATCH';
+            document.getElementById('queueMessage').textContent = '';
+            
+            const opponentUsername = opponentData.username || 'Unknown';
+            const opponentElo = opponentData.elo || 1000;
+            
+            currentMatch = {
+                opponent: opponentUsername,
+                opponentId: opponentId,
+                opponentElo: opponentElo,
+                matchId: Date.now() + '_' + Math.random()
+            };
+            
+            relay.sendPlayerAction('match_start', {
+                opponentId: opponentId,
+                opponent: opponentUsername,
+                myUsername: myPlayerId,
+                myElo: myElo,
+                matchId: currentMatch.matchId
+            });
+            
+            showScreen('battleScreen');
+            initBattle();
+        }
+
+        function acceptMatch(opponentId, matchData) {
+            inQueue = false;
+            document.getElementById('findMatchBtn').textContent = 'FIND MATCH';
+            document.getElementById('queueMessage').textContent = '';
+            
+            currentMatch = {
+                opponent: matchData.myUsername,
+                opponentId: opponentId,
+                opponentElo: matchData.myElo || 1000,
+                matchId: matchData.matchId
+            };
+            
+            showScreen('battleScreen');
+            initBattle();
+        }
+
+        function initBattle() {
+            myHealth = 100;
+            opponentHealth = 100;
+            players.clear();
+            
+            meterCharge = 0;
+            canAttack = true;
+            isCharging = false;
+            if (chargeInterval) {
+                clearInterval(chargeInterval);
+                chargeInterval = null;
+            }
+            document.getElementById('meterFill').style.width = '0%';
+            
+            const arena = document.getElementById('battleArena');
+            arena.querySelectorAll('.player').forEach(el => el.remove());
+            
+            const maxX = window.innerWidth / 2 - 100;
+            const maxY = window.innerHeight / 2 - 150;
+            
+            let myX, myY, oppX, oppY;
+            if (currentMatch.isBot || relay.clientId < currentMatch.opponentId) {
+                myX = -maxX;
+                myY = -maxY;
+                oppX = maxX;
+                oppY = maxY;
+            } else {
+                myX = maxX;
+                myY = maxY;
+                oppX = -maxX;
+                oppY = -maxY;
+            }
+            
+            const myEl = createPlayerElement(myPlayerId, '#3b82f6', myX, myY);
+            const oppEl = createPlayerElement(currentMatch.opponent, '#ef4444', oppX, oppY);
+            
+            players.set(relay.clientId, { 
+                element: myEl, x: myX, y: myY, health: 100, 
+                username: myPlayerId, lastUpdate: Date.now(),
+                charge: 0
+            });
+            
+            players.set(currentMatch.opponentId, { 
+                element: oppEl, x: oppX, y: oppY, health: 100, 
+                username: currentMatch.opponent, lastUpdate: Date.now(),
+                isBot: currentMatch.isBot || false,
+                botDifficulty: currentMatch.botDifficulty,
+                charge: 0,
+                canAttack: true,
+                dashReady: true,
+                justGotHit: false,
+                postCritCount: 0
+            });
+            
+            document.getElementById('battleInfo').textContent = 
+                `${myPlayerId} (${myElo}) VS ${currentMatch.opponent} (${currentMatch.opponentElo})`;
+            
+            startGameLoop();
+            if (!currentMatch.isBot) {
+                startPositionUpdates();
+            }
+            dashCooldownRemaining = 0;
+            if (dashCooldownTimer) clearInterval(dashCooldownTimer);
+            document.getElementById('dashBarFill').style.height = '0%';
+            document.getElementById('dashCooldownText').textContent = 'READY';
+            document.getElementById('dashIcon').classList.add('ready');
+            document.getElementById('dashIcon').classList.remove('cooling');
+        }
+
+        function createPlayerElement(username, color, x, y) {
+            const player = document.createElement('div');
+            player.className = 'player';
+            player.style.background = color;
+            player.textContent = '⚔️';
+            
+            const nameTag = document.createElement('div');
+            nameTag.className = 'player-name';
+            nameTag.textContent = username + (username === myPlayerId ? ' (YOU)' : '');
+            player.appendChild(nameTag);
+            
+            const healthBar = document.createElement('div');
+            healthBar.className = 'health-bar';
+            healthBar.innerHTML = `
+                <div class="health-fill"></div>
+                <div class="health-text">100/100</div>
+            `;
+            player.appendChild(healthBar);
+            
+            updatePlayerPosition(player, x, y);
+            document.getElementById('battleArena').appendChild(player);
+            
+            return player;
+        }
+
+        function updatePlayerPosition(element, x, y) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            element.style.left = (centerX + x - 20) + 'px';
+            element.style.top = (centerY + y - 20) + 'px';
+        }
+
+        function performDash() {
+            if (isDashing || dashCooldownRemaining > 0 || !currentMatch) return;
+            
+            const myData = players.get(relay.clientId);
+            if (!myData) return;
+            
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const playerScreenX = centerX + myData.x;
+            const playerScreenY = centerY + myData.y;
+            
+            const dx = mouseX - playerScreenX;
+            const dy = mouseY - playerScreenY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 10) return;
+            
+            const normalizedDx = dx / distance;
+            const normalizedDy = dy / distance;
+            
+            isDashing = true;
+            
+            const playerColor = '#3b82f6';
+            const afterimageCount = 5;
+            
+            for (let i = 0; i < afterimageCount; i++) {
+                setTimeout(() => {
+                    createAfterimage(myData.x, myData.y, playerColor);
+                }, i * 20);
+            }
+            
+            const dashSteps = 10;
+            let step = 0;
+            
+            const dashInterval = setInterval(() => {
+                if (step >= dashSteps || !currentMatch) {
+                    clearInterval(dashInterval);
+                    isDashing = false;
+                    startDashCooldown();
+                    return;
+                }
+                
+                const stepDistance = DASH_DISTANCE / dashSteps;
+                const newX = myData.x + (normalizedDx * stepDistance);
+                const newY = myData.y + (normalizedDy * stepDistance);
+                
+                const maxX = window.innerWidth / 2 - 60;
+                const maxY = window.innerHeight / 2 - 100;
+                
+                if (Math.abs(newX) < maxX && Math.abs(newY) < maxY) {
+                    myData.x = newX;
+                    myData.y = newY;
+                    updatePlayerPosition(myData.element, myData.x, myData.y);
+                }
+                
+                step++;
+            }, 20);
+            
+            if (!currentMatch.isBot) {
+                relay.sendPlayerAction('dash', {
+                    startX: myData.x,
+                    startY: myData.y,
+                    directionX: normalizedDx,
+                    directionY: normalizedDy
+                });
+            }
+        }
+
+        function createAfterimage(x, y, color) {
+            const afterimage = document.createElement('div');
+            afterimage.className = 'dash-afterimage';
+            afterimage.style.background = color;
+            afterimage.textContent = '⚔️';
+            
+            updatePlayerPosition(afterimage, x, y);
+            document.getElementById('battleArena').appendChild(afterimage);
+            
+            setTimeout(() => afterimage.remove(), 500);
+        }
+
+        function startDashCooldown() {
+            dashCooldownRemaining = DASH_COOLDOWN;
+            
+            const barFill = document.getElementById('dashBarFill');
+            const text = document.getElementById('dashCooldownText');
+            const icon = document.getElementById('dashIcon');
+            
+            icon.classList.remove('ready');
+            icon.classList.add('cooling');
+            
+            if (dashCooldownTimer) clearInterval(dashCooldownTimer);
+            
+            dashCooldownTimer = setInterval(() => {
+                dashCooldownRemaining -= 100;
+                
+                if (dashCooldownRemaining <= 0) {
+                    dashCooldownRemaining = 0;
+                    clearInterval(dashCooldownTimer);
+                    barFill.style.height = '100%';
+                    text.textContent = 'READY';
+                    icon.classList.remove('cooling');
+                    icon.classList.add('ready');
+                } else {
+                    const progress = 1 - (dashCooldownRemaining / DASH_COOLDOWN);
+                    barFill.style.height = (progress * 100) + '%';
+                    text.textContent = (dashCooldownRemaining / 1000).toFixed(1) + 's';
+                }
+            }, 100);
+        }
+
+        function startGameLoop() {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+            document.removeEventListener('click', handleAttack);
+            document.removeEventListener('mousemove', handleMouseMove);
+            
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            document.addEventListener('click', handleAttack);
+            document.addEventListener('mousemove', handleMouseMove);
+            
+            meterCharge = 0;
+            canAttack = true;
+            isCharging = false;
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleMouseMove(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
+
+        function handleKeyDown(e) {
+            keys[e.key] = true;
+            
+            if (e.key === ' ' && !isDashing && dashCooldownRemaining === 0 && currentMatch) {
+                e.preventDefault();
+                performDash();
+            }
+        }
+
+        function handleKeyUp(e) {
+            keys[e.key] = false;
+        }
+
+        function gameLoop() {
+            if (!currentMatch) return; // Stop immediately if no match
+            
+            const myData = players.get(relay.clientId);
+            if (!myData) return;
+            
+            let dx = 0, dy = 0;
+            
+            if (keys['ArrowUp'] || keys['w']) dy -= PLAYER_SPEED;
+            if (keys['ArrowDown'] || keys['s']) dy += PLAYER_SPEED;
+            if (keys['ArrowLeft'] || keys['a']) dx -= PLAYER_SPEED;
+            if (keys['ArrowRight'] || keys['d']) dx += PLAYER_SPEED;
+            
+            if (dx !== 0 || dy !== 0) {
+                const newX = myData.x + dx;
+                const newY = myData.y + dy;
+                
+                const maxX = window.innerWidth / 2 - 60;
+                const maxY = window.innerHeight / 2 - 100;
+                
+                if (Math.abs(newX) < maxX && Math.abs(newY) < maxY) {
+                    myData.x = newX;
+                    myData.y = newY;
+                    updatePlayerPosition(myData.element, myData.x, myData.y);
+                }
+            }
+            
+            if (canAttack && !isCharging) {
+                isCharging = true;
+                startCharging();
+            }
+            
+            // Bot AI - only run if match is still active
+            if (currentMatch) { // Double check match exists
+                const opponentData = players.get(currentMatch.opponentId);
+                if (opponentData && opponentData.isBot) {
+                    updateBotCharge(currentMatch.opponentId);
+                    
+                    switch(opponentData.botDifficulty) {
+                        case 'easy':
+                            easyBotAI(currentMatch.opponentId, relay.clientId);
+                            break;
+                        case 'medium':
+                            mediumBotAI(currentMatch.opponentId, relay.clientId);
+                            break;
+                        case 'hard':
+                            hardBotAI(currentMatch.opponentId, relay.clientId);
+                            break;
+                    }
+                }
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // BOT AI FUNCTIONS
+        
+        function updateBotCharge(botId) {
+    const bot = players.get(botId);
+    if (!bot || !bot.isBot) return;
+    
+    if (bot.canAttack && bot.charge < 100) {
+        // Match player charge rate exactly - 2% every 50ms
+        // Since gameLoop runs faster, we need to account for actual time passed
+        const now = Date.now();
+        if (!bot.lastChargeUpdate) bot.lastChargeUpdate = now;
+        
+        const timePassed = now - bot.lastChargeUpdate;
+        bot.charge += (timePassed / ATTACK_CHARGE_TIME) * 100;
+        bot.lastChargeUpdate = now;
+        
+        if (bot.charge > 100) bot.charge = 100;
+    } else if (!bot.canAttack) {
+        // Reset charge timer when can't attack
+        bot.lastChargeUpdate = Date.now();
+    }
+}
+        
+        function easyBotAI(botId, playerId) {
+            const bot = players.get(botId);
+            const player = players.get(playerId);
+            
+            if (!bot || !player) return;
+            
+            const distance = Math.sqrt(
+                Math.pow(bot.x - player.x, 2) + 
+                Math.pow(bot.y - player.y, 2)
+            );
+            
+            const dx = player.x - bot.x;
+            const dy = player.y - bot.y;
+            const magnitude = Math.sqrt(dx * dx + dy * dy);
+            
+            // Simple chase - slower movement
+            if (magnitude > ATTACK_RANGE + 20) {
+                bot.x += (dx / magnitude) * (PLAYER_SPEED ); // Slower
+                bot.y += (dy / magnitude) * (PLAYER_SPEED);
+                updatePlayerPosition(bot.element, bot.x, bot.y);
+            }
+            
+            // Attack when charge is 45%+ (doesn't wait, spams early attacks)
+            if (distance <= ATTACK_RANGE && bot.charge >= 10 && bot.canAttack) {
+                botAttack(botId, playerId);
+            }
+            
+            // Panic dash away if just got hit (very frequent)
+            if (bot.justGotHit && bot.dashReady && Math.random() > 0.15) {
+                const dashX = bot.x - (dx / magnitude) * DASH_DISTANCE;
+                const dashY = bot.y - (dy / magnitude) * DASH_DISTANCE;
+                botDash(botId, dashX, dashY);
+                bot.justGotHit = false;
+            }
+            
+            // Rarely dashes offensively at bad times
+            if (distance > 150 && bot.dashReady && Math.random() > 0.92) {
+                const dashX = bot.x + (dx / magnitude) * DASH_DISTANCE;
+                const dashY = bot.y + (dy / magnitude) * DASH_DISTANCE;
+                botDash(botId, dashX, dashY);
+            }
+        }
+        
+function mediumBotAI(botId, playerId) {
+    const bot = players.get(botId);
+    const player = players.get(playerId);
+    
+    if (!bot || !player) return;
+    
+    const distance = Math.sqrt(
+        Math.pow(bot.x - player.x, 2) + 
+        Math.pow(bot.y - player.y, 2)
+    );
+    
+    const dx = player.x - bot.x;
+    const dy = player.y - bot.y;
+    const magnitude = Math.sqrt(dx * dx + dy * dy);
+    
+    // Track how long we've been in standoff range
+    if (distance > ATTACK_RANGE - 10 && distance < ATTACK_RANGE + 20) {
+        if (!bot.standoffTimer) bot.standoffTimer = Date.now();
+    } else {
+        bot.standoffTimer = null;
+    }
+    
+    // Get impatient after 2 seconds of waiting
+    const standoffTime = bot.standoffTimer ? Date.now() - bot.standoffTimer : 0;
+    const isImpatient = standoffTime > 2000;
+    
+    // Average player movement - same speed, tries to stay at good distance
+    if (distance > ATTACK_RANGE + 15 || isImpatient) {
+        // Chase when too far OR when impatient
+        bot.x += (dx / magnitude) * PLAYER_SPEED;
+        bot.y += (dy / magnitude) * PLAYER_SPEED;
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    } else if (distance < ATTACK_RANGE - 10 && !isImpatient) {
+        // Back up when too close (unless impatient)
+        bot.x -= (dx / magnitude) * PLAYER_SPEED;
+        bot.y -= (dy / magnitude) * PLAYER_SPEED;
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    } else {
+        // Strafe a bit in the sweet spot (like a player would)
+        if (Math.random() > 0.7) {
+            const perpX = -dy / magnitude;
+            const perpY = dx / magnitude;
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            bot.x += perpX * PLAYER_SPEED * 0.5 * direction;
+            bot.y += perpY * PLAYER_SPEED * 0.5 * direction;
+            updatePlayerPosition(bot.element, bot.x, bot.y);
+        }
+    }
+    
+    // Average player - tries to hit around 85-95% (not perfect, but decent)
+    // When impatient, will attack earlier (70%+)
+    const targetCharge = isImpatient ? (70 + Math.random() * 30) : (85 + Math.random() * 15);
+    
+    if (distance <= ATTACK_RANGE && bot.charge >= targetCharge && bot.canAttack) {
+        setTimeout(() => {
+            if (players.get(botId)) {
+                botAttack(botId, playerId);
+                bot.standoffTimer = null; // Reset timer after attacking
+            }
+        }, 250);
+    }
+    
+    // Defensive dash - sometimes dodges when you're charged (50% chance)
+    if (meterCharge >= 88 && distance < 85 && bot.dashReady && Math.random() > 0.3) {
+        setTimeout(() => {
+            if (!players.get(botId)?.dashReady) return;
+            const perpX = -dy / magnitude;
+            const perpY = dx / magnitude;
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const dashX = bot.x + perpX * DASH_DISTANCE * direction;
+            const dashY = bot.y + perpY * DASH_DISTANCE * direction;
+            botDash(botId, dashX, dashY);
+        }, 200);
+    }
+    
+    // Offensive dash - occasionally dashes in when you're weak (40% chance)
+    // OR always dash in when impatient
+    if ((meterCharge < 40 && distance > 130 && bot.charge >= 75 && Math.random() > 0.6) || 
+        (isImpatient && bot.charge >= 60 && distance > 90)) {
+        if (bot.dashReady) {
+            setTimeout(() => {
+                if (!players.get(botId)?.dashReady) return;
+                const dashX = bot.x + (dx / magnitude) * DASH_DISTANCE;
+                const dashY = bot.y + (dy / magnitude) * DASH_DISTANCE;
+                botDash(botId, dashX, dashY);
+                bot.standoffTimer = null; // Reset after dashing in
+            }, 200);
+        }
+    }
+    
+    // If low health, play more defensively (but still attack if impatient)
+    if (bot.health < 30 && distance < 90 && meterCharge > 70 && !isImpatient) {
+        bot.x -= (dx / magnitude) * PLAYER_SPEED * 1.2;
+        bot.y -= (dy / magnitude) * PLAYER_SPEED * 1.2;
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    }
+}
+        
+  function hardBotAI(botId, playerId) {
+    const bot = players.get(botId);
+    const player = players.get(playerId);
+    
+    if (!bot || !player) return;
+    
+    const distance = Math.sqrt(
+        Math.pow(bot.x - player.x, 2) + 
+        Math.pow(bot.y - player.y, 2)
+    );
+    
+    const dx = player.x - bot.x;
+    const dy = player.y - bot.y;
+    const magnitude = Math.sqrt(dx * dx + dy * dy);
+    // If retreating after spam, RUN AWAY but still attack if possible
+if (bot.isRetreating && Date.now() < bot.retreatUntil) {
+    const newX = bot.x - (dx / magnitude) * PLAYER_SPEED;
+    const newY = bot.y - (dy / magnitude) * PLAYER_SPEED;
+    
+    // Check boundaries before moving
+    const maxX = window.innerWidth / 2 - 60;
+    const maxY = window.innerHeight / 2 - 100;
+    
+    if (Math.abs(newX) < maxX && Math.abs(newY) < maxY) {
+        bot.x = newX;
+        bot.y = newY;
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    } else {
+        // Hit a wall, stop retreating
+        bot.isRetreating = false;
+    }
+    
+    // WHILE RETREATING, still spam if in range and charged!
+    if (distance <= ATTACK_RANGE && bot.charge >= 20 && bot.canAttack) {
+        botAttack(botId, playerId);
+    }
+    
+    return; // Don't do any other AI logic while running
+}
+bot.isRetreating = false;
+    
+    
+    // Calculate if we can finish them with current charge
+    const myPotentialDamage = Math.floor((bot.charge / 100) * 25);
+    const canKillNow = myPotentialDamage >= myHealth;
+    
+    // Calculate if they can kill us with their current charge
+    const theirPotentialDamage = Math.floor((meterCharge / 100) * 25);
+    const theyCanKillUs = theirPotentialDamage >= bot.health;
+    
+    // Track player's last position
+    if (!bot.playerLastPos) {
+        bot.playerLastPos = { x: player.x, y: player.y, time: Date.now() };
+    }
+    
+    const timeSinceCheck = Date.now() - bot.playerLastPos.time;
+    if (timeSinceCheck > 500) { // Check every 500ms
+        const playerMoved = Math.sqrt(
+            Math.pow(player.x - bot.playerLastPos.x, 2) + 
+            Math.pow(player.y - bot.playerLastPos.y, 2)
+        );
+        
+        // If player barely moved (less than 20 units in 500ms), they're camping
+        const isPlayerCamping = playerMoved < 20;
+        
+        bot.playerLastPos = { x: player.x, y: player.y, time: Date.now() };
+        bot.isPlayerCamping = isPlayerCamping;
+    }
+    
+    // SURVIVAL MODE: If they can kill us and we're in range, DASH AWAY immediately
+    if (theyCanKillUs && meterCharge >= 85 && distance < 100 && bot.dashReady) {
+        const perpX = -dy / magnitude;
+        const perpY = dx / magnitude;
+        const direction = Math.random() > 0.5 ? 1 : -1;
+        const dashX = bot.x + perpX * DASH_DISTANCE * direction - (dx / magnitude) * 50;
+        const dashY = bot.y + perpY * DASH_DISTANCE * direction - (dy / magnitude) * 50;
+        botDash(botId, dashX, dashY);
+        return;
+    }
+    
+    // If player is camping, ALWAYS RUSH regardless of charge
+    if (bot.isPlayerCamping && distance > ATTACK_RANGE) {
+        bot.x += (dx / magnitude) * PLAYER_SPEED;
+        bot.y += (dy / magnitude) * PLAYER_SPEED;
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    } else {
+        // Normal positioning
+        let targetDistance = 70;
+        if (meterCharge >= 85) {
+            targetDistance = 100;
+        } else if (meterCharge < 30) {
+            targetDistance = 65;
+        }
+        
+        if (distance > targetDistance + 5) {
+            bot.x += (dx / magnitude) * PLAYER_SPEED;
+            bot.y += (dy / magnitude) * PLAYER_SPEED;
+        } else if (distance < targetDistance - 5) {
+            bot.x -= (dx / magnitude) * PLAYER_SPEED;
+            bot.y -= (dy / magnitude) * PLAYER_SPEED;
+        } else {
+            const perpX = -dy / magnitude;
+            const perpY = dx / magnitude;
+            const direction = Math.sin(Date.now() / 200) > 0 ? 1 : -1;
+            bot.x += perpX * PLAYER_SPEED * direction;
+            bot.y += perpY * PLAYER_SPEED * direction;
+        }
+        updatePlayerPosition(bot.element, bot.x, bot.y);
+    }
+    
+    // PRIORITY: Finish them if we can!
+    if (canKillNow && distance <= ATTACK_RANGE && bot.canAttack) {
+        botAttack(botId, playerId);
+        bot.postCritCount = 0;
+        return;
+    }
+    
+    // Attack at 70% if player is camping, otherwise 90%
+    const critThreshold = bot.isPlayerCamping ? 70 : 90;
+    if (distance <= ATTACK_RANGE && bot.charge >= critThreshold && bot.canAttack) {
+        botAttack(botId, playerId);
+        bot.postCritCount = 1;
+        bot.lastAttackTime = Date.now();
+        return;
+    }
+    
+
+
+// Single spam after crit - INSTANT SPAM then GTFO AND STAY AWAY
+const timeSinceAttack = Date.now() - (bot.lastAttackTime || 0);
+if (bot.postCritCount > 0 && bot.charge >= 25 && distance <= ATTACK_RANGE && bot.canAttack && timeSinceAttack < 2000) {
+    // Spam INSTANTLY at 25% charge
+    botAttack(botId, playerId);
+    bot.postCritCount = 0;
+    bot.isRetreating = true;
+    bot.retreatUntil = Date.now() + 2500; // Stay away for 1.5 seconds
+    
+    // Try to dash away if available
+    if (bot.dashReady) {
+        setTimeout(() => {
+            if (bot.dashReady && players.get(botId)) {
+                const escapeX = bot.x - (dx / magnitude) * DASH_DISTANCE;
+                const escapeY = bot.y - (dy / magnitude) * DASH_DISTANCE;
+                botDash(botId, escapeX, escapeY);
+                // DON'T set isRetreating to false! Let the timer run out
+            }
+        }, 50);
+    }
+}
+    
+    // Defensive dash - when player is charged up
+    if (meterCharge >= 85 && distance < 95 && bot.dashReady && Math.random() > 0.2) {
+        const perpX = -dy / magnitude;
+        const perpY = dx / magnitude;
+        const direction = Math.random() > 0.5 ? 1 : -1;
+        const dashX = bot.x + perpX * DASH_DISTANCE * direction;
+        const dashY = bot.y + perpY * DASH_DISTANCE * direction;
+        botDash(botId, dashX, dashY);
+    }
+    
+    // Offensive dash - when player is weak OR player is camping
+    if ((meterCharge < 65 && distance > 120 && bot.charge >= 88 && Math.random() > 0.3) ||
+        (bot.isPlayerCamping && bot.charge >= 60 && distance > 80 && bot.dashReady)) {
+        const dashX = bot.x + (dx / magnitude) * DASH_DISTANCE;
+        const dashY = bot.y + (dy / magnitude) * DASH_DISTANCE;
+        botDash(botId, dashX, dashY);
+    }
+}
+        
+        function botAttack(botId, playerId) {
+            if (!currentMatch) return; // Don't attack if match ended
+            
+            const bot = players.get(botId);
+            const player = players.get(playerId);
+            
+            if (!bot || !player || !bot.canAttack) return;
+            
+            let damage = Math.floor((bot.charge / 100) * 25);
+            let hitType = 'normal';
+            
+            if (bot.charge < 10) {
+                damage = 1;
+                hitType = 'weak';
+            } else if (bot.charge >= 90) {
+                damage = 25;
+                hitType = 'critical';
+            }
+            
+            showSwordSwing(bot.element);
+            
+            player.health = Math.max(0, player.health - damage);
+            myHealth = player.health;
+            updateHealth(playerId, player.health);
+            showDamageNumber(damage, hitType, player.element);
+            
+            // Reset charge and set cooldown
+            bot.charge = 0;
+            bot.canAttack = false;
+            
+            // Natural cooldown - same as charge time (2.5 seconds for full charge)
+            // Small cooldown to prevent instant re-attack
+            setTimeout(() => {
+                if (players.get(botId)) {
+                    players.get(botId).canAttack = true;
+                }
+            }, 200); // Small delay before can attack again (charge still needs to build)
+            
+            if (player.health <= 0 && currentMatch) { // Check match still exists
+                endMatch(false, false);
+            }
+        }
+        
+        function botDash(botId, targetX, targetY) {
+            const bot = players.get(botId);
+            if (!bot || !bot.dashReady) return;
+            
+            const maxX = window.innerWidth / 2 - 60;
+            const maxY = window.innerHeight / 2 - 100;
+            
+            targetX = Math.max(-maxX, Math.min(maxX, targetX));
+            targetY = Math.max(-maxY, Math.min(maxY, targetY));
+            
+            const botColor = '#ef4444';
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createAfterimage(bot.x, bot.y, botColor);
+                }, i * 20);
+            }
+            
+            bot.x = targetX;
+            bot.y = targetY;
+            updatePlayerPosition(bot.element, bot.x, bot.y);
+            
+            bot.dashReady = false;
+            setTimeout(() => {
+                if (players.get(botId)) {
+                    players.get(botId).dashReady = true;
+                }
+            }, DASH_COOLDOWN);
+        }
+
+        function startCharging() {
+            if (chargeInterval) clearInterval(chargeInterval);
+            
+            chargeInterval = setInterval(() => {
+                if (meterCharge < 100) {
+                    meterCharge += (100 / (ATTACK_CHARGE_TIME / 50));
+                    if (meterCharge > 100) meterCharge = 100;
+                    document.getElementById('meterFill').style.width = meterCharge + '%';
+                }
+            }, 50);
+        }
+
+        function startPositionUpdates() {
+            if (positionUpdateInterval) clearInterval(positionUpdateInterval);
+            
+            positionUpdateInterval = setInterval(() => {
+                if (relay && relay.connected && currentMatch) {
+                    const myData = players.get(relay.clientId);
+                    if (myData) {
+                        relay.sendPlayerAction('player_move', { 
+                            x: myData.x, 
+                            y: myData.y,
+                            timestamp: Date.now()
+                        });
+                    }
+                    
+                    const oppData = players.get(currentMatch.opponentId);
+                    if (oppData) {
+                        const timeSinceUpdate = Date.now() - oppData.lastUpdate;
+                        if (timeSinceUpdate > 5000) {
+                            endMatch(true, true);
+                        }
+                    }
+                }
+            }, 50);
+        }
+
+        function stopPositionUpdates() {
+            if (positionUpdateInterval) {
+                clearInterval(positionUpdateInterval);
+                positionUpdateInterval = null;
+            }
+        }
+
+        function updateOpponentPosition(playerId, data) {
+            const playerData = players.get(playerId);
+            
+            if (playerData) {
+                playerData.x = data.x;
+                playerData.y = data.y;
+                playerData.lastUpdate = Date.now();
+                updatePlayerPosition(playerData.element, data.x, data.y);
+            }
+        }
+
+        function handleAttack() {
+            if (!canAttack || !currentMatch) return;
+            
+            const myData = players.get(relay.clientId);
+            const opponentData = players.get(currentMatch.opponentId);
+            
+            if (!myData || !opponentData) return;
+            
+            const distance = Math.sqrt(
+                Math.pow(myData.x - opponentData.x, 2) + 
+                Math.pow(myData.y - opponentData.y, 2)
+            );
+            
+            let damage = 0;
+            let hitType = 'miss';
+            
+            if (distance <= ATTACK_RANGE) {
+                if (meterCharge < 10) {
+                    damage = 1;
+                    hitType = 'weak';
+                } else if (meterCharge >= 90) {
+                    damage = 25;
+                    hitType = 'critical';
+                } else {
+                    damage = Math.floor((meterCharge / 100) * 25);
+                    hitType = 'normal';
+                }
+            }
+            
+            showSwordSwing(myData.element);
+            
+            if (currentMatch.isBot) {
+                if (damage > 0) {
+                    opponentHealth = Math.max(0, opponentHealth - damage);
+                    opponentData.health = opponentHealth;
+                    opponentData.justGotHit = true;
+                    updateHealth(currentMatch.opponentId, opponentHealth);
+                    showDamageNumber(damage, hitType, opponentData.element);
+                    
+                    if (opponentHealth <= 0) {
+                        endMatch(true, false);
+                    }
+                }
+            } else {
+                relay.sendPlayerAction('attack', {
+                    damage,
+                    hitType,
+                    attackerPos: { x: myData.x, y: myData.y }
+                });
+                
+                if (damage > 0) {
+                    opponentHealth = Math.max(0, opponentHealth - damage);
+                    updateHealth(currentMatch.opponentId, opponentHealth);
+                    showDamageNumber(damage, hitType, opponentData.element);
+                    
+                    if (opponentHealth <= 0) {
+                        endMatch(true, false);
+                    }
+                }
+            }
+            
+            myData.charge = meterCharge;
+            meterCharge = 0;
+            document.getElementById('meterFill').style.width = '0%';
+            canAttack = true;
+        }
+
+        function handleOpponentAttack(attackData, attackerId) {
+            const { damage, hitType } = attackData;
+            
+            const attackerData = players.get(attackerId);
+            if (attackerData) showSwordSwing(attackerData.element);
+            
+            if (damage > 0) {
+                myHealth = Math.max(0, myHealth - damage);
+                updateHealth(relay.clientId, myHealth);
+                const myData = players.get(relay.clientId);
+                if (myData) showDamageNumber(damage, hitType, myData.element);
+                
+                if (myHealth <= 0) {
+                    endMatch(false, false);
+                }
+            }
+        }
+
+        function handleOpponentDash(dashData, playerId) {
+            const playerData = players.get(playerId);
+            if (!playerData) return;
+            
+            const opponentColor = '#ef4444';
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createAfterimage(playerData.x, playerData.y, opponentColor);
+                }, i * 20);
+            }
+        }
+
+        function showSwordSwing(playerElement) {
+            const swing = document.createElement('div');
+            swing.className = 'sword-swing';
+            
+            const rect = playerElement.getBoundingClientRect();
+            swing.style.left = rect.left + rect.width / 2 + 'px';
+            swing.style.top = rect.top + rect.height / 2 + 'px';
+            swing.style.opacity = '1';
+            
+            document.body.appendChild(swing);
+            
+            setTimeout(() => swing.remove(), 200);
+        }
+
+        function updateHealth(playerId, health) {
+            const playerData = players.get(playerId);
+            if (!playerData) return;
+            
+            const healthFill = playerData.element.querySelector('.health-fill');
+            const healthText = playerData.element.querySelector('.health-text');
+            
+            healthFill.style.width = health + '%';
+            healthText.textContent = health + '/100';
+        }
+
+        function showDamageNumber(damage, hitType, playerElement) {
+            const div = document.createElement('div');
+            div.className = 'damage-number';
+            if (hitType === 'critical') div.classList.add('critical-hit');
+            if (hitType === 'weak') div.classList.add('weak-hit');
+            
+            div.textContent = '-' + damage;
+            
+            const rect = playerElement.getBoundingClientRect();
+            div.style.left = rect.left + rect.width / 2 + 'px';
+            div.style.top = rect.top + 'px';
+            
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 1000);
+        }
+
+        function calculateEloChange(myElo, oppElo, won) {
+            const expectedScore = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
+            const actualScore = won ? 1 : 0;
+            return Math.round(K_FACTOR * (actualScore - expectedScore));
+        }
+
+        function endMatch(won, disconnected) {
+            if (!currentMatch) return;
+            
+            // Stop all game intervals immediately
+            if (chargeInterval) {
+                clearInterval(chargeInterval);
+                chargeInterval = null;
+            }
+            stopPositionUpdates();
+            
+            // Remove event listeners
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+            document.removeEventListener('click', handleAttack);
+            
+            // Calculate ELO change (only for PvP matches)
+            const isBot = currentMatch.isBot;
+            const eloChange = isBot ? 0 : calculateEloChange(myElo, currentMatch.opponentElo, won);
+            const newElo = isBot ? myElo : myElo + eloChange;
+            
+            // Send match end to relay if not bot match
+            if (!isBot) {
+                relay.sendPlayerAction('match_end', {
+                    winner: won ? myPlayerId : currentMatch.opponent,
+                    myElo: newElo,
+                    eloChange: eloChange,
+                    disconnected: disconnected
+                });
+            }
+            
+            // IMPORTANT: Clear the match BEFORE showing results to stop bot AI
+            const wasBot = currentMatch.isBot;
+            const botDifficulty = currentMatch.botDifficulty;
+            const opponentName = currentMatch.opponent;
+            currentMatch = null; // This stops the bot AI in gameLoop
+            
+            showMatchResult(won, eloChange, newElo, disconnected, wasBot, botDifficulty, opponentName);
+        }
+
+        function receiveMatchEnd(data) {
+            // Match ended by opponent
+        }
+
+        function showMatchResult(won, eloChange, newElo, disconnected, wasBot, botDifficulty, opponentName) {
+            showScreen('resultsScreen');
+            
+            if (won) {
+                document.getElementById('resultTitle').textContent = '🏆 VICTORY!';
+                document.getElementById('resultTitle').style.color = '#4ade80';
+            } else {
+                document.getElementById('resultTitle').textContent = '💀 DEFEAT';
+                document.getElementById('resultTitle').style.color = '#ef4444';
+            }
+            
+            const eloChangeEl = document.getElementById('eloChange');
+            
+            if (wasBot) {
+                eloChangeEl.className = '';
+                eloChangeEl.style.color = '#888';
+                eloChangeEl.textContent = 'No ELO Change (Practice Match)';
+            } else {
+                eloChangeEl.className = eloChange >= 0 ? 'elo-gain' : 'elo-loss';
+                eloChangeEl.textContent = `${eloChange >= 0 ? '+' : ''}${eloChange} ELO`;
+            }
+            
+            if (wasBot) {
+                document.getElementById('resultStats').textContent = 
+                    `Current ELO: ${myElo} (vs ${botDifficulty.toUpperCase()} Bot)`;
+            } else {
+                document.getElementById('resultStats').textContent = 
+                    `Previous: ${myElo} → New: ${newElo}` + 
+                    (disconnected ? ' (Opponent Disconnected)' : '');
+                
+                // Only save ELO for PvP matches
+                saveElo(newElo);
+            }
+            
+            if (relay && relay.connected && !wasBot) {
+                relay.send({ 
+                    type: 'update_status',
+                    status: JSON.stringify({ elo: newElo })
+                });
+            }
+        }
+
+        function returnToLobby() {
+            stopPositionUpdates();
+            showScreen('lobbyScreen');
+            players.clear();
+            keys = {};
+            currentMatch = null;
+            meterCharge = 0;
+            canAttack = true;
+            isCharging = false;
+            
+            if (chargeInterval) {
+                clearInterval(chargeInterval);
+                chargeInterval = null;
+            }
+            
+            document.getElementById('findMatchBtn').textContent = 'FIND MATCH';
+            document.getElementById('queueMessage').textContent = '';
+            
+            updateLeaderboard();
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        async function init() {
+            loadUserProfile();
+            await connectToRelay();
+        }
+
+        init();
+    </script>
+</body>
+</html>

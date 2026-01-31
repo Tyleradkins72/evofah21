@@ -1,1 +1,1 @@
-# evofah2
+Welcome to EvoFah2, the website for all of your EvoFah needs! not a game website or anything like that lol.

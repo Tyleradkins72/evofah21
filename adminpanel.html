@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #d69e2e;
+        }
+        .back-btn {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 30px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: #252525;
+            border-color: #555;
+        }
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #d69e2e;
+        }
+        .section h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            margin-top: 15px;
+            color: #fff;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 10px;
+        }
+        input:focus, select:focus {
+            border-color: #555;
+        }
+        button {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        button:hover {
+            background: #252525;
+            border-color: #555;
+        }
+        button.success {
+            background: #2d5f2e;
+            border-color: #38a169;
+        }
+        button.success:hover {
+            background: #38a169;
+        }
+        button.danger {
+            background: #5f2d2d;
+            border-color: #c53030;
+        }
+        button.danger:hover {
+            background: #c53030;
+        }
+        small {
+            color: #666;
+            font-size: 12px;
+            display: block;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .connection-status.connected {
+            background: #2d5f2e;
+            border: 1px solid #38a169;
+        }
+        .connection-status.disconnected {
+            background: #5f2d2d;
+            border: 1px solid #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status disconnected" id="connectionStatus">⚠️ Connecting...</div>
+    
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Home</a>
+        
+        <h1 id="panelTitle">🔒 LOADING...</h1>
+        
+        <!-- Owner Only -->
+        <div id="ownerSection" style="display: none;">
+            <div class="section">
+                <h2>👑 Owner Controls</h2>
+                
+                <h3>Promote/Demote Staff</h3>
+                <input type="text" id="promoteUsername" placeholder="Username">
+                <select id="promoteRank">
+                    <option value="player">Player</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="admin">Admin</option>
+                    <option value="sr.admin">Sr. Admin</option>
+                    <option value="owner">Owner</option>
+                </select>
+                <button class="success" id="promoteBtn">Set Rank</button>
+                <small>User must be online for this to work</small>
+            </div>
+            
+            <div class="section">
+                <h2>🚫 Permanent Ban</h2>
+                <input type="text" id="permBanUsername" placeholder="Username">
+                <input type="number" id="permBanDays" placeholder="Days (0 = permanent)">
+                <button class="danger" id="permBanBtn">Ban User</button>
+                <small>User must be online to receive ban</small>
+            </div>
+        </div>
+        
+        <!-- Sr. Admin & Owner -->
+        <div id="srAdminSection" style="display: none;">
+            <div class="section">
+                <h2>⚡ Sr. Admin Controls</h2>
+                
+                <h3>Ban User (Up to 30 days)</h3>
+                <input type="text" id="srBanUsername" placeholder="Username">
+                <input type="number" id="srBanDays" placeholder="Days (max 30)" max="30">
+                <button class="danger" id="srBanBtn">Ban User</button>
+                <small>Cannot ban other Sr. Admins or Owner</small>
+            </div>
+        </div>
+        
+        <!-- Admin, Sr. Admin & Owner -->
+        <div id="adminSection" style="display: none;">
+            <div class="section">
+                <h2>🛡️ Admin Controls</h2>
+                
+                <h3>Ban Player (Up to 7 days)</h3>
+                <input type="text" id="adminBanUsername" placeholder="Username">
+                <input type="number" id="adminBanDays" placeholder="Days (max 7)" max="7">
+                <button class="danger" id="adminBanBtn">Ban Player</button>
+                <small>Cannot ban staff members</small>
+            </div>
+
+            <div class="section">
+        <h2>🔓 Unban User</h2>
+        <input type="text" id="unbanUsername" placeholder="Username to unban">
+        <button class="success" id="unbanBtn">Unban User</button>
+        <small>Removes ban from user (requires target to be online)</small>
+    </div>
+        </div>
+        
+        <!-- Moderator, Admin, Sr. Admin & Owner -->
+        <div id="moderatorSection" style="display: none;">
+            <div class="section">
+    <h2>🔰 Moderator Controls</h2>
+    
+    <h3>Mute User (24h max)</h3>
+    <input type="text" id="muteUsername" placeholder="Username">
+    <input type="number" id="muteHours" placeholder="Hours (max 24)" max="24">
+    <button id="muteBtn">Mute User</button>
+    
+    <h3 style="margin-top: 20px;">Unmute User</h3>
+    <input type="text" id="unmuteUsername" placeholder="Username to unmute">
+    <button class="success" id="unmuteBtn">Unmute User</button>
+    <small>All actions are logged</small>
+</div>
+            
+            
+        </div>
+        
+        <div id="accessDenied" style="display: none; text-align: center; padding: 40px;">
+            <h2 style="color: #ff4444;">Access Denied</h2>
+            <p>You don't have permission to view this page.</p>
+        </div>
+    </div>
+    
+    <script src="relay-client.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
